@@ -273,9 +273,14 @@ def load_data(dataset):
     :type dataset: string
     :param dataset: the path to the dataset (here MNIST)
     '''
-    arr = (train_set_x,train_set_y)
+    arr = (train_set_x[:3999],train_set_y[:3999])
     train_set = tuple(map(tuple, arr))
-    
+
+    arr = (train_set_x[4000:4999],train_set_y[4000:4999])
+    valid_set = tuple(map(tuple, arr))
+
+    arr = (train_set_x[5000:],train_set_y[5000:])
+    test_set = tuple(map(tuple, arr))    
 
     def shared_dataset(data_xy, borrow=True):
             """ Function that loads the dataset into shared variables
@@ -303,8 +308,8 @@ def load_data(dataset):
             return shared_x, T.cast(shared_y, 'int32')
     
     test_set_x, test_set_y = shared_dataset(train_set)
-    valid_set_x, valid_set_y = shared_dataset(train_set)
-    train_set_x, train_set_y = shared_dataset(train_set)
+    valid_set_x, valid_set_y = shared_dataset(valid_set)
+    train_set_x, train_set_y = shared_dataset(test_set)
     
     rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
               (test_set_x, test_set_y)]
