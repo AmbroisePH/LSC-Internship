@@ -510,8 +510,8 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
     datasets = load_data(dataset)
 
     train_set_x, train_set_y = datasets[0]
-    valid_set_x, valid_set_y = datasets[0]
-    test_set_x, test_set_y = datasets[0]
+    valid_set_x, valid_set_y = datasets[1]
+    test_set_x, test_set_y = datasets[2]
     
     n_in = train_set_x.get_value().shape[1]
     print(n_in)
@@ -612,7 +612,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
     # early-stopping parameters
     patience = 10000  # look as this many examples regardless
-    patience_increase = 2  # wait this much longer when a new best is
+    patience_increase = 20  # wait this much longer when a new best is
                            # found
     improvement_threshold = 0.995  # a relative improvement of this much is
                                    # considered significantmais

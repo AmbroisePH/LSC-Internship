@@ -1,18 +1,38 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed May 25 15:09:19 2016
+Created on Fri May 27 13:58:23 2016
 
 @author: ambroise
 
-GOAL: HALF-SKIPGRAM get phone from the previous one
+GOAL: SKIPGRAM get phones around the targeted phone from the previous one
 
-Input: output of GetPhones_dictio
+Here the n_out = 2*n_in. This output vector is cut in half, representing 
+previous and next phone around the input phone. 
+A loss function is calculated for each one of this half vector and added for 
+the global loss function.
+
+Input: outputs of GetPhones_dictio
 
 Output: W model
 
-This tutorial introduces logistic regression using Theano and stochastic
-gradient descent.
+This tutorial introduces the multilayer perceptron using Theano.
 
+ A multilayer perceptron is a logistic regressor where
+instead of feeding the input to the logistic regression you insert a
+intermediate layer, called the hidden layer, that has a nonlinear
+activation function (usually tanh or sigmoid) . One can use many such
+hidden layers making the architecture deep. The tutorial will also tackle
+the problem of MNIST digit classification.
+
+.. math::
+
+    f(x) = G( b^{(2)} + W^{(2)}( s( b^{(1)} + W^{(1)} x))),
+
+References:
+
+    - textbooks: "Pattern Recognition and Machine Learning" -
+                 Christopher M. Bishop, section 5
+                 
 Logistic regression is a probabilistic, linear classifier. It is parametrized
 by a weight matrix :math:`W` and a bias vector :math:`b`. Classification is
 done by projecting data points onto a set of hyperplanes, the distance to
@@ -158,11 +178,17 @@ class LogisticRegression(object):
         # x is a matrix where row-j  represents input training sample-j
         # b is a vector where element-k represent the free parameter of
         # hyperplane-k
-        self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
+
+        self.y_given_x = T.dot(input, self.W) + self.b      # 
+        
+        self.p_y_previous_given_x = T.nnet.softmax(self.y_given_x[:84/2-1])
+        self.p_y_next_given_x = T.nnet.softmax(self.y_given_x[84/2:])
+        
 
         # symbolic description of how to compute prediction as class whose
         # probability is maximal
-        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.y_previous_pred = T.argmax(self.p_y_previous_given_x, axis=1)
+        self.y_next_pred = T.argmax(self.p_y_next_given_x, axis=1)
         # end-snippet-1
 
         # parameters of the model
@@ -200,7 +226,12 @@ class LogisticRegression(object):
         # LP[n-1,y[n-1]]] and T.mean(LP[T.arange(y.shape[0]),y]) is
         # the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
-        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
+        
+        
+        NL_previous = -T.mean(T.log(self.p_y_previous_given_x)[T.arange(y.shape[0]), y])
+        NL_next = -T.mean(T.log(self.p_y_previous_given_x)[T.arange(y.shape[0]), y])
+        
+        return NL_previous + NL_next        
         # end-snippet-2
 
     def errors(self, y):
@@ -212,18 +243,29 @@ class LogisticRegression(object):
         :param y: corresponds to a vector that gives for each example the
                   correct label
         """
-
+        y_previous = y[1]
+        y_next = y[2]
+        
         # check if y has same dimension of y_pred
-        if y.ndim != self.y_pred.ndim:
+        if y_previous.ndim != self.y_previous_pred.ndim:
             raise TypeError(
-                'y should have the same shape as self.y_pred',
-                ('y', y.type, 'y_pred', self.y_pred.type)
+                'y_previous should have the same shape as self.y_previous_pred',
+                ('y_previous', y_previous.type, 'y_previous_pred', self.y_previous_pred.type)
+            )
+        
+        
+        # check if y has same dimension of y_pred
+        if y_next.ndim != self.y_next_pred.ndim:
+            raise TypeError(
+                'y_next should have the same shape as self.y_next_pred',
+                ('y_next', y_next.type, 'y_next_pred', self.y_next_pred.type)
             )
         # check if y is of the correct datatype
-        if y.dtype.startswith('int'):
+        if y_next.dtype.startswith('int') and y_previous.dtype.startswith('int'):
             # the T.neq operator returns a vector of 0s and 1s, where 1
             # represents a mistake in prediction
-            return T.mean(T.neq(self.y_pred, y))
+        
+            return T.mean(T.neq(self.y_previous_pred, y_previous)) + T.mean(T.neq(self.y_next_pred, y_next))
         else:
             raise NotImplementedError()
 
@@ -251,16 +293,27 @@ def load_data(dataset):
     
     for i in range (0,n_examples-1):
         train_set_x[i,dico[text[i]]] = 1
-        
-    print(train_set_x)
-        
-        
-    train_set_y = numpy.zeros((n_examples,),dtype='int')
     
-    train_set_y[n_examples-1]=numpy.nonzero(train_set_x[0])[0]
+    print("train_set_x")    
+    print(train_set_x)
+    
+    
+    train_set_y = [numpy.zeros((n_examples,),dtype='int'),numpy.zeros((n_examples,),dtype='int')]
+    
+    print(train_set_y)
+   # train_set_y[0][n_examples-1]=numpy.nonzero(train_set_x[0])[0]
+  #  train_set_y[0][0]=numpy.nonzero(train_set_x[n_examples-1])[0]
+    for i in range (1,n_examples-1):
+        train_set_y[0][i]=numpy.nonzero(train_set_x[i-1])[0]
+        
+
+   # train_set_y[1][n_examples-1]=numpy.nonzero(train_set_x[0])[0]
+  #  train_set_y[1][0]=numpy.nonzero(train_set_x[n_examples-1])[0]
     for i in range (0,n_examples-2):
-        train_set_y[i]=numpy.nonzero(train_set_x[i+1])[0]
-            
+        train_set_y[1][i]=numpy.nonzero(train_set_x[i+1])[0]
+        
+      
+    print("train_set_y")
     print(train_set_y)
 
     
@@ -269,13 +322,13 @@ def load_data(dataset):
     :type dataset: string
     :param dataset: the path to the dataset (here MNIST)
     '''
-    arr = (train_set_x[:4000],train_set_y[0][:4000])
+    arr = (train_set_x[:4000],[train_set_y[0][:4000],train_set_y[1][:4000]])
     train_set = tuple(map(tuple, arr))
 
-    arr = (train_set_x[4000:5000],train_set_y[4000:5000])
+    arr = (train_set_x[4000:5000],[train_set_y[0][4000:5000],train_set_y[1][4000:5000]])
     valid_set = tuple(map(tuple, arr))
 
-    arr = (train_set_x[5000:],train_set_y[5000:])
+    arr = (train_set_x[5000:],[train_set_y[0][5000:],train_set_y[1][5000:]])
     test_set = tuple(map(tuple, arr))    
 
 
@@ -536,7 +589,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
         input=x,
         n_in=n_in,
         n_hidden=n_hidden,
-        n_out=n_in
+        n_out=2*n_in
     )
 
     # start-snippet-4
@@ -608,7 +661,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
     # early-stopping parameters
     patience = 10000  # look as this many examples regardless
-    patience_increase = 20  # wait this much longer when a new best is
+    patience_increase = 2  # wait this much longer when a new best is
                            # found
     improvement_threshold = 0.995  # a relative improvement of this much is
                                    # considered significant
