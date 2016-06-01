@@ -21,6 +21,7 @@
     Inputs : vecteur correspondant à un phonème
     Target : phonème à gauche et à droite. 
     Output de taille 2*n_in. 
+    Architecture idem article T. Mikolov
     calcul de deux cost functions sur chaque moitié du vecteur de sortie puis additionnées. 
     Première moitié correspond au phonème précédent, deuxième moitié au suivant. 
     
