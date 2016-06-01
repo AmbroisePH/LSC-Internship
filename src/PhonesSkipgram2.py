@@ -315,7 +315,9 @@ def load_data(dataset):
       
     print("train_set_y")
     print(train_set_y)
-
+    print(len(train_set_y[0]))
+    print(len(train_set_x[4000:5000]))
+    
     
     ''' Loads the dataset
 
@@ -331,7 +333,9 @@ def load_data(dataset):
     arr = (train_set_x[5000:],[train_set_y[0][5000:],train_set_y[1][5000:]])
     test_set = tuple(map(tuple, arr))    
 
-
+#    print(test_set[1].eval().shape)
+#    print(test_set[2].eval().shape)
+    
     def shared_dataset(data_xy, borrow=True):
             """ Function that loads the dataset into             y_b: test_set_y[1][index * batch_size:(index + 1) * batch_size]shared variables
     
@@ -363,6 +367,14 @@ def load_data(dataset):
     
     rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
               (test_set_x, test_set_y)]
+              
+    print(train_set_x.eval().shape)
+    print(train_set_y.eval().shape)
+    print(valid_set_x.eval().shape)
+    print(valid_set_y.eval().shape)
+    print(test_set_x.eval().shape)
+    print(test_set_y.eval().shape)
+          
     return rval
 
 
@@ -410,7 +422,7 @@ class HiddenLayer(object):
         #        should use 4 times larger initial weights for sigmoid
         #        compared to tanh
         #        We have no info for other function, so we use the same as
-        #        tanh.
+        #        tanh.validate_model
         if W is None:
             W_values = numpy.asarray(
                 rng.uniform(
@@ -439,7 +451,6 @@ class HiddenLayer(object):
         )
         # parameters of the model
         self.params = [self.W, self.b]
-
 
 # start-snippet-2
 class MLP(object):
@@ -561,6 +572,14 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
     train_set_x, train_set_y = datasets[0]
     valid_set_x, valid_set_y = datasets[1]
     test_set_x, test_set_y = datasets[2]
+    
+    print(train_set_x.eval().shape)
+    print(train_set_y.eval().shape)
+    print(valid_set_x.eval().shape)
+    print(valid_set_y.eval().shape)
+    print(test_set_x.eval().shape)
+    print(test_set_y.eval().shape)
+
     
     n_in = train_set_x.get_value().shape[1]
     print(n_in)
@@ -708,7 +727,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
                 )
 
                 # if we got the best validation score until now
-                if this_validation_loss < best_validation_loss:
+                if this_validation_loss < validate_modelbest_validation_loss:
                     #improve patience if loss improvement is good enough
                     if (
                         this_validation_loss < best_validation_loss *
