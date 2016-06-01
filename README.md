@@ -27,5 +27,5 @@
     
     NE FONCTIONNE PAS
 
-remarque : Probleme de taille des "train_set", "valid_set" et "test_set". ne respecte pas les tailles imposées 
+remarque : Probleme de taille des "train_set", "valid_set" et "test_set". ne respectent pas les tailles imposées 
             (Ce n'est donc pas qui fait buger PS2)
