@@ -179,7 +179,7 @@ class LogisticRegression(object):
         # b is a vector where element-k represent the free parameter of
         # hyperplane-k
 
-        self.y_given_x = T.dot(input, self.W) + self.b      # 
+        self.y_given_x = T.dot(input, self.W) + self.b # représentation recherchée ()     # 
         
         self.p_y_previous_given_x = T.nnet.softmax(self.y_given_x[:84/2-1])
         self.p_y_next_given_x = T.nnet.softmax(self.y_given_x[84/2:])
