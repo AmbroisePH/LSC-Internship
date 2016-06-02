@@ -5,12 +5,18 @@
     cf options en entête de programme
     outputs dans /data
 
-- phoneCBOW.py
+- phoneCBOW1.py
     Inputs : Vecteurs représentant les phonèmes à gauche et à droite sont concaténés
+    
+    
+    MAUVAIS SCORE
+
+- phoneCBOW2.py
+    Inputs : Vecteurs one-hot représentant les phonèmes à gauche et à droite sont additionnés
     Architecture de idem article T. Mikolov
     
     MAUVAIS SCORE
-    
+
 - PhonesSkipgram1.py
     Inputs : vecteur correspondant à un phonème
     Target : phonème suivant seulement
@@ -27,5 +33,3 @@
     
     NE FONCTIONNE PAS
 
-remarque : Probleme de taille des "train_set", "valid_set" et "test_set". ne respectent pas les tailles imposées 
-            (Ce n'est donc pas qui fait buger PS2)
