@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed May 25 15:09:19 2016
+Created on Thu Jun  2 14:19:56 2016
 
 @author: ambroise
 
-GOAL: HALF-SKIPGRAM get phone from the previous one
+
+GOAL: CBOW get phone from the previous one AND the next one. No influence of order in CBOW2
 
 Input: output of GetPhones_dictio
 
 Output: W model
+
+Input of the NN is the sum of two one-hot vectors corresponding to previous and next phones.
 
 This tutorial introduces logistic regression using Theano and stochastic
 gradient descent.
@@ -249,18 +252,25 @@ def load_data(dataset):
     train_set_x = numpy.zeros((n_examples,n_in),dtype='int')
     
     
-    for i in range (0,n_examples-1):
-        train_set_x[i,dico[text[i]]] = 1
-        
+    for i in range (1,n_examples-1):
+        train_set_x[i,dico[text[i-1]]] =  1
+        train_set_x[i,dico[text[i+1]]] = 1
+   
     print(train_set_x)
-        
-        
-    train_set_y = numpy.zeros((n_examples,),dtype='int')
     
-    train_set_y[n_examples-1]=numpy.nonzero(train_set_x[0])[0]
-    for i in range (0,n_examples-2):
-        train_set_y[i]=numpy.nonzero(train_set_x[i+1])[0]
-            
+    for i in range (0,n_examples):
+        print(sum(train_set_x[i,]))
+    
+        
+    
+    train_set_y = numpy.zeros((n_examples,),dtype='int')
+    for i in range (0,n_examples):
+        train_set_y[i] = dico[text[i]]   
+    
+#    train_set_y[n_examples-1]=numpy.nonzero(train_set_x[0])[0]
+#    for i in range (0,n_examples-2):
+#        train_set_y[i]=numpy.nonzero(train_set_x[i+1])[0]
+#            
     print(train_set_y)
 
     
@@ -269,15 +279,14 @@ def load_data(dataset):
     :type dataset: string
     :param dataset: the path to the dataset (here MNIST)
     '''
-    arr = (train_set_x[:4000],train_set_y[:4000])
+    arr = (train_set_x[:3999],train_set_y[:3999])
     train_set = tuple(map(tuple, arr))
 
-    arr = (train_set_x[4000:5000],train_set_y[4000:5000])
+    arr = (train_set_x[4000:4999],train_set_y[4000:4999])
     valid_set = tuple(map(tuple, arr))
 
     arr = (train_set_x[5000:],train_set_y[5000:])
     test_set = tuple(map(tuple, arr))    
-
 
     def shared_dataset(data_xy, borrow=True):
             """ Function that loads the dataset into shared variables
@@ -307,11 +316,24 @@ def load_data(dataset):
     train_set_x, train_set_y = shared_dataset(train_set)
     valid_set_x, valid_set_y = shared_dataset(valid_set)
     test_set_x, test_set_y = shared_dataset(test_set)
+
+    print(train_set_x.eval().shape)
+    print(train_set_y.eval().shape)
+    print(valid_set_x.eval().shape)
+    print(valid_set_y.eval().shape)
+    print(test_set_x.eval().shape)
+    print(test_set_y.eval().shape)
     
     rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
               (test_set_x, test_set_y)]
     return rval
-
+    
+    print(train_set_x.eval().shape)
+    print(train_set_y.eval().shape)
+    print(valid_set_x.eval().shape)
+    print(valid_set_y.eval().shape)
+    print(test_set_x.eval().shape)
+    print(test_set_y.eval().shape)
 
 
 # start-snippet-1
@@ -399,6 +421,7 @@ class MLP(object):
     top layer is a softmax layer (defined here by a ``LogisticRegression``
     class).
     """
+
     def __init__(self, rng, input, n_in, n_hidden, n_out):
         """Initialize the parameters for the multilayer perceptron
 
@@ -475,7 +498,7 @@ class MLP(object):
 
 
 def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             dataset='mnist.pkl.gz', batch_size=01, n_hidden=30):
+             dataset='mnist.pkl.gz', batch_size=10, n_hidden=30):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
@@ -508,6 +531,13 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
     train_set_x, train_set_y = datasets[0]
     valid_set_x, valid_set_y = datasets[1]
     test_set_x, test_set_y = datasets[2]
+
+    print(train_set_x.eval().shape)
+    print(train_set_y.eval().shape)
+    print(valid_set_x.eval().shape)
+    print(valid_set_y.eval().shape)
+    print(test_set_x.eval().shape)
+    print(test_set_y.eval().shape)
     
     n_in = train_set_x.get_value().shape[1]
     print(n_in)
@@ -611,7 +641,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
     patience_increase = 20  # wait this much longer when a new best is
                            # found
     improvement_threshold = 0.995  # a relative improvement of this much is
-                                   # considered significant
+                                   # considered significantmais
     validation_frequency = min(n_train_batches, patience // 2)
                                   # go through this many
                                   # minibatche before checking the network
@@ -661,7 +691,6 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
                     best_validation_loss = this_validation_loss
                     best_iter = iter
-
                     # test it on the test set
                     test_losses = [test_model(i) for i
                                    in range(n_test_batches)]
@@ -708,5 +737,4 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
 if __name__ == '__main__':
     os.chdir("/home/ambroise/Documents/LSC-Internship/data")
-    test_mlp(learning_rate=0.1,n_epochs=1000,dataset="s3802a_dictio.words", batch_size=01, n_hidden=30)
-
+    test_mlp(learning_rate=0.1,n_epochs=1000,dataset="s3802a_dictio.words", batch_size=20, n_hidden=30)

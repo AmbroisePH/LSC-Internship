@@ -5,11 +5,13 @@ Created on Wed May 25 17:24:52 2016
 @author: ambroise
 
 
-GOAL: CBOW get phone from the previous one AND the next one
+GOAL: CBOW get phone from the previous one AND the next one. Order matters in CBOW1
 
 Input: output of GetPhones_dictio
 
 Output: W model
+
+Input of the NN are two concatenated one-hot vectors corresponding to previous and next phones.
 
 This tutorial introduces logistic regression using Theano and stochastic
 gradient descent.
@@ -307,28 +309,18 @@ def load_data(dataset):
             # lets ous get around this issue
             return shared_x, T.cast(shared_y, 'int32')
     
-    test_set_x, test_set_y = shared_dataset(train_set)
-    valid_set_x, valid_set_y = shared_dataset(valid_set)
-    train_set_x, train_set_y = shared_dataset(test_set)
+        
 
-    print(train_set_x.eval().shape)
-    print(train_set_y.eval().shape)
-    print(valid_set_x.eval().shape)
-    print(valid_set_y.eval().shape)
-    print(test_set_x.eval().shape)
-    print(test_set_y.eval().shape)
     
+    train_set_x, train_set_y = shared_dataset(train_set)
+    valid_set_x, valid_set_y = shared_dataset(valid_set)
+    test_set_x, test_set_y= shared_dataset(test_set)
+
+
     rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
               (test_set_x, test_set_y)]
     return rval
     
-    print(train_set_x.eval().shape)
-    print(train_set_y.eval().shape)
-    print(valid_set_x.eval().shape)
-    print(valid_set_y.eval().shape)
-    print(test_set_x.eval().shape)
-    print(test_set_y.eval().shape)
-
 
 # start-snippet-1
 class HiddenLayer(object):
@@ -492,7 +484,7 @@ class MLP(object):
 
 
 def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             dataset='mnist.pkl.gz', batch_size=1, n_hidden=300):
+             dataset='mnist.pkl.gz', batch_size=50, n_hidden=300):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
@@ -731,4 +723,4 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
 if __name__ == '__main__':
     os.chdir("/home/ambroise/Documents/LSC-Internship/data")
-    test_mlp(learning_rate=0.1,n_epochs=10,dataset="s3802a_dictio.words")
+    test_mlp(learning_rate=0.1,n_epochs=1000,dataset="s3802a_dictio.words", batch_size=10, n_hidden=30)
