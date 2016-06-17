@@ -61,6 +61,8 @@ from pprint import pprint #pretty-printer
 import theano
 import theano.tensor as T
 
+import fnmatch
+
 import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -232,12 +234,19 @@ class LogisticRegression(object):
 
 def load_data(dataset):
     
-    dictionary = corpora.Dictionary(line.lower().split() for line in cd.open(dataset, encoding='utf8'))
-    #dictionary = str(dictionary)
-    dico = dictionary.token2id
+    #load buckeye dictionary (dictio if dictio phones, real if real phones)
+
+    if fnmatch.fnmatchcase(dataset, '*real*'):
+        dictio = corpora.Dictionary.load('BuckeyeDictionary_real.dict')
+    elif fnmatch.fnmatchcase(dataset, '*dictio*'):
+        dictio = corpora.Dictionary.load('BuckeyeDictionary_dictio.dict')
+    else:
+        raise TypeError('Filename does not contain real or dictio, load data cannot find its dictionary',(dataset))
+
     
+    dico = dictio.token2id    
     print(dico)
-    n_in = len(dictionary)
+    n_in = len(dictio)
     
     with cd.open(dataset, 'r', encoding='utf8') as f:
         text = f.read().lower().split()
@@ -708,5 +717,11 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
 if __name__ == '__main__':
     os.chdir("/home/ambroise/Documents/LSC-Internship/data")
-    test_mlp(learning_rate=0.1,n_epochs=1000,dataset="s3802a_dictio.words", batch_size=01, n_hidden=30)
+    
+    for learning_rate in numpy.arange(0.1, 0.5, 0.1):
+        
+        for n_epochs in range (100,1000, 50):
+            print('n_epochs =', n_epochs)
+            print('learning rate =', learning_rate)
+            test_mlp(learning_rate=learning_rate,n_epochs=n_epochs,dataset="s3802a_dictio.words", batch_size=01, n_hidden=30)
 

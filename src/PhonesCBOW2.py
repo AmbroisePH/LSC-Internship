@@ -14,7 +14,10 @@ Output: W model
 Input of the NN is the sum of two one-hot vectors corresponding to previous and next phones.
 
 This tutorial introduces logistic regression using Theano and stochastic
-gradient descent.
+gradient descent.    self.HL_output = (
+            lin_output if activation is None
+            else activation(lin_output)
+#            
 
 Logistic regression is a probabilistic, linear classifier. It is parametrized
 by a weight matrix :math:`W` and a bias vector :math:`b`. Classification is
@@ -64,49 +67,11 @@ from pprint import pprint #pretty-printer
 import theano
 import theano.tensor as T
 
+import fnmatch
+
 import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-########
-##Load data, build dictionnary
-########
-#
-#dictionary = corpora.Dictionary(line.lower().split() for line in cd.open('corpus1.txt', encoding='utf8'))
-##dictionary = str(dictionary)
-#
-#N_OUT = len(dictionary)
-#N_IN = N_OUT
-#
-#print(dictionary)
-#print(dictionary.token2id)
-#dico = dictionary.token2id
-#
-######## get the inputs ready
-#
-#
-#with cd.open('corpus1.txt', 'r', encoding='utf8') as f:
-#    text = [f.read().lower().split()]
-#inp =  print(text)
-#text=text[0]
-#
-#n_examples=len(text)
-#
-#train_set_x = numpy.zeros((n_examples,N_IN),dtype='int')
-#
-#
-#for i in range (0,n_examples-1):
-#    train_set_x[i,dico[text[i]]] = 1
-#    
-#print(train_set_x)
-
-#
-#train_set_y = numpy.zeros((n_examples,),dtype='int')
-#
-#train_set_y[n_examples-1]=numpy.nonzero(train_set_x[0])[0]
-#for i in range (0,n_examples-2):
-#    train_set_y[i]=numpy.nonzero(train_set_x[i+1])[0]
-#
-#print(train_set_y)
 
 class LogisticRegression(object):
     """Multi-class Logistic Regression Class
@@ -143,6 +108,8 @@ class LogisticRegression(object):
             name='W',
             borrow=True
         )
+        
+        
         # initialize the biases b as a vector of n_out 0s
         self.b = theano.shared(
             value=numpy.zeros(
@@ -233,18 +200,28 @@ class LogisticRegression(object):
 
 
 
-def load_data(dataset):
+def load_data(datasets):
     
-    dictionary = corpora.Dictionary(line.lower().split() for line in cd.open(dataset, encoding='utf8'))
-    #dictionary = str(dictionary)
-    dico = dictionary.token2id
+    #load buckeye dictionary 
+
+    if fnmatch.fnmatchcase(datasets[1], '*real*'):
+        dictio = corpora.Dictionary.load('BuckeyeDictionary_real.dict')
+    elif fnmatch.fnmatchcase(datasets[1], '*dictio*'):
+        dictio = corpora.Dictionary.load('BuckeyeDictionary_dictio.dict')
+    else:
+        raise TypeError('Filename does not contain real or dictio, load data cannot find its dictionary',(datasets))
+
     
+    dico = dictio.token2id    
     print(dico)
-    n_in = len(dictionary)
+    print('Size of the dictionary : ', len(dico))
+    n_in = len(dictio)
     
-    with cd.open(dataset, 'r', encoding='utf8') as f:
-        text = f.read().lower().split()
-  #      text=text[0]
+    text=[]
+    for dataset in datasets:
+        with cd.open(dataset, 'r', encoding='utf8') as f:
+            text = text + f.read().lower().split()
+      #      text=text[0]
         
     n_examples=len(text)
     print("n_examples = ", n_examples)
@@ -258,8 +235,8 @@ def load_data(dataset):
    
     print(train_set_x)
     
-    for i in range (0,n_examples):
-        print(sum(train_set_x[i,]))
+#    for i in range (0,n_examples):
+#        print(sum(train_set_x[i,]))
     
         
     
@@ -497,8 +474,8 @@ class MLP(object):
         self.input = input
 
 
-def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             dataset='mnist.pkl.gz', batch_size=10, n_hidden=30):
+def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
+              batch_size=10, n_hidden=30):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
@@ -526,7 +503,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
 
    """
-    datasets = load_data(dataset)
+    datasets = load_data(file_list)
 
     train_set_x, train_set_y = datasets[0]
     valid_set_x, valid_set_y = datasets[1]
@@ -679,7 +656,11 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
                         this_validation_loss * 100.
                     )
                 )
-
+                
+                #list of the validation losses at every stages ready to be saved
+                ValidationLosses=[]
+                ValidationLosses = ValidationLosses + [this_validation_loss]
+                
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
                     #improve patience if loss improvement is good enough
@@ -715,10 +696,18 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 #                         
 #                    with open('best_model_MLP1_LogRegressionLayer.pkl', 'wb') as f:
 #                         pickle.dump(classifier.logRegressionLayer, f)
-                         
-                    with open('best_model_MLP1_params1.pkl', 'wb') as f:
-                         pickle.dump(classifier.params, f)     
-                         
+                    os.chdir("/home/ambroise/Documents/LSC-Internship/results")     
+                    
+                    SavedModel_name = ('BestModelCBOW2_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+                    print('filename for saved model: ', SavedModel_name)                    
+                    with open(SavedModel_name, 'wb') as f:
+                         pickle.dump(classifier.params, f)  
+                    
+                    
+                    ValidationLosses_name = ('ValidationLosses_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+                    print('filename for ValidationLosses: ', ValidationLosses_name)                    
+                    with open(ValidationLosses_name, 'wb') as f:
+                         pickle.dump(ValidationLosses, f) 
 #                    with open('best_model_MLP1_params2.pkl', 'wbwb') as f:
 #                         pickle.dump(classifier.params, f)     
                          
@@ -736,5 +725,13 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
 
 if __name__ == '__main__':
-    os.chdir("/home/ambroise/Documents/LSC-Internship/data")
-    test_mlp(learning_rate=0.1,n_epochs=1000,dataset="s3802a_dictio.words", batch_size=20, n_hidden=30)
+    file_list = ['s0101a_dictio.words','s0101b_dictio.words','s0102a_dictio.words','s0102a_dictio.words']  
+    for learningrate in numpy.arange(0.1, 0.5, 0.1):     
+        for nepochs in range (100,1000, 10):
+            for batchsize in range (5,100,10):
+                os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
+                print('n_epochs = ', nepochs)
+                print('learning rate = ', learningrate)
+                print('batchsize = ', batchsize)
+                test_mlp(file_list,learning_rate=learningrate,n_epochs=nepochs, batch_size = batchsize, n_hidden=30)
+    

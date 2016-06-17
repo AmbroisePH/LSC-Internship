@@ -39,6 +39,7 @@ def predict(n_examples = 10):
 
 
     # We can test it on some examples from test test
+    os.chdir("/home/ambroise/Documents/LSC-Internship/misc/data")
     dataset='mnist.pkl.gz'
     datasets = load_data(dataset)
     test_set_x, test_set_y = datasets[2]
@@ -55,5 +56,5 @@ def predict(n_examples = 10):
     print(T.mean(T.neq(predict_model(test_set_x),test_set_y.eval())).eval()*100)
     
 if __name__ == '__main__':
-        predict(30)
+    predict(30)
         

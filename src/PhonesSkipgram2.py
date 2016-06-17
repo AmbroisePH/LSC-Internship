@@ -81,6 +81,8 @@ from pprint import pprint #pretty-printer
 import theano
 import theano.tensor as T
 
+import fnmatch
+
 import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -274,12 +276,20 @@ class LogisticRegression(object):
 
 def load_data(dataset):
     
-    dictionary = corpora.Dictionary(line.lower().split() for line in cd.open(dataset, encoding='utf8'))
-    #dictionary = str(dictionary)
-    dico = dictionary.token2id
+    #load buckeye dictionary 
+
+    if fnmatch.fnmatchcase(dataset, '*real*'):
+        dictio = corpora.Dictionary.load('BuckeyeDictionary_real.dict')
+    elif fnmatch.fnmatchcase(dataset, '*dictio*'):
+        dictio = corpora.Dictionary.load('BuckeyeDictionary_dictio.dict')
+    else:
+        raise TypeError('Filename does not contain real or dictio, load data cannot find its dictionary',(dataset))
+
     
+    dico = dictio.token2id    
     print(dico)
-    n_in = len(dictionary)
+    n_in = len(dictio)
+    
     
     with cd.open(dataset, 'r', encoding='utf8') as f:
         text = f.read().lower().split()
