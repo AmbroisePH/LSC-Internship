@@ -1,0 +1,58 @@
+---
+title: "paramters"
+output: html_document
+---
+```{r packages, include=FALSE}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(RColorBrewer)
+```
+```{r setup, include=FALSE}
+results1 <- read.csv("results/results1.csv")
+results1$block <- "results1"
+results3 <- read.csv("results/results3.csv")
+results3$block <- "results3"
+
+names(results3) <- c("n_epoch","learning_rate","batch_size","validation_error","block")
+names(results1) <- c("n_epoch","learning_rate","batch_size","validation_error","block")
+
+results <- rbind(results1,results3)
+```
+```{r combinations, include=FALSE}
+unique(select(results, -validation_error))
+
+```
+
+```{r best parameters}
+head(results[order(results$`validation_error`),])
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r n_epoch, echo=FALSE}
+ggplot(results,aes(x=n_epoch, y=validation_error)) + geom_point() + facet_wrap(~block)
+
+```
+```{r learning_rate, echo=FALSE}
+ggplot(results,aes(x=learning_rate, y=validation_error)) + geom_point() + facet_wrap(~block)
+
+```
+```{r batch_size, echo=FALSE}
+ggplot(results,aes(x=batch_size, y=validation_error)) + geom_point() + facet_wrap(~block, scales = "free_x")
+
+```
+```{r learning_rate_n_epoch}
+myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+results_by_lrne <- ddply(results, .(n_epoch,learning_rate, block), summarize, med_validation_error=median(validation_error))
+ggplot(filter(results_by_lrne, block=="results1"), aes(y=n_epoch, x=learning_rate, fill=med_validation_error)) + geom_tile() + scale_fill_gradientn(colours=myPalette(100), limits=c(0.68,0.78))
+ggplot(filter(results_by_lrne, block=="results3"), aes(y=n_epoch, x=learning_rate, fill=med_validation_error)) + geom_tile() + scale_fill_gradientn(colours=myPalette(100), limits=c(0.68,0.78))
+```
+```{r n_epoch_batch_size}
+myPalette <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
+results_by_nebs <- ddply(results, .(n_epoch,batch_size, block), summarize, med_validation_error=median(validation_error))
+ggplot(filter(results_by_nebs, block=="results1"), aes(y=n_epoch, x=batch_size, fill=med_validation_error)) + geom_tile() + scale_fill_gradientn(colours=myPalette(100), limits=c(0.68,0.78))
+ggplot(filter(results_by_nebs, block=="results3"), aes(y=n_epoch, x=batch_size, fill=med_validation_error)) + geom_tile() + scale_fill_gradientn(colours=myPalette(100), limits=c(0.68,0.78))
+```

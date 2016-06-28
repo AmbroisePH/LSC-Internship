@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun  2 14:19:56 2016
+Created on Tue Jun 21 15:07:44 2016
 
 @author: ambroise
+# -*- coding: utf-8 -*-
 
 
 GOAL: CBOW get phone from the previous one AND the next one. No influence of order in CBOW2
@@ -66,6 +67,7 @@ from pprint import pprint #pretty-printer
 
 import theano
 import theano.tensor as T
+from theano import config
 
 import fnmatch
 import csv
@@ -321,6 +323,72 @@ def load_data(datasets):
     print(test_set_y.eval().shape)
 
 
+
+def numpy_floatX(data):
+    return numpy.asarray(data, dtype=config.floatX)
+    
+def adadelta(lr, tparams, grads, x, y, cost):
+    """
+    An adaptive learning rate optimizer
+
+    Parameters
+    ----------
+    lr : Theano SharedVariable
+        Initial learning rate
+    tpramas: Theano SharedVariable
+        Model parameters
+    grads: Theano variable
+        Gradients of cost w.r.t to parameres
+    x: Theano variable
+        Model inputs
+    mask: Theano variable (chais pas cque c'est)
+        Sequence mask
+    y: Theano variable
+        Targets
+    cost: Theano variable
+        Objective fucntion to minimize
+
+    Notes
+    -----
+    For more information, see [ADADELTA]_.
+
+    .. [ADADELTA] Matthew D. Zeiler, *ADADELTA: An Adaptive Learning
+       Rate Method*, arXiv:1212.5701.
+    """
+
+    zipped_grads = [theano.shared(p.get_value() * numpy_floatX(0.),
+                                  name='%s_grad' % k)
+                    for k, p in tparams.items()]
+    running_up2 = [theano.shared(p.get_value() * numpy_floatX(0.),
+                                 name='%s_rup2' % k)
+                   for k, p in tparams.items()]
+    running_grads2 = [theano.shared(p.get_value() * numpy_floatX(0.),
+                                    name='%s_rgrad2' % k)
+                      for k, p in tparams.items()]
+
+    zgup = [(zg, g) for zg, g in zip(zipped_grads, grads)]
+    rg2up = [(rg2, 0.95 * rg2 + 0.05 * (g ** 2))
+             for rg2, g in zip(running_grads2, grads)]
+
+    f_grad_shared = theano.function([x, y], cost, updates=zgup + rg2up,
+                                    name='adadelta_f_grad_shared')
+
+    updir = [-tensor.sqrt(ru2 + 1e-6) / tensor.sqrt(rg2 + 1e-6) * zg
+             for zg, ru2, rg2 in zip(zipped_grads,
+                                     running_up2,
+                                     running_grads2)]
+    ru2up = [(ru2, 0.95 * ru2 + 0.05 * (ud ** 2))
+             for ru2, ud in zip(running_up2, updir)]
+    param_up = [(p, p + ud) for p, ud in zip(tparams.values(), updir)]
+
+    f_update = theano.function([lr], [], updates=ru2up + param_up,
+                               on_unused_input='ignore',
+                               name='adadelta_f_update')
+
+    return f_grad_shared, f_update
+
+
+
 # start-snippet-1
 class HiddenLayer(object):
     def __init__(self, rng, input, n_in, n_out, W=None, b=None,
@@ -545,7 +613,7 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
 
     rng = numpy.random.RandomState(1234)
 
-    # construct the MLP classb
+    # construct the MLP class
     classifier = MLP(
         rng=rng,
         input=x,
@@ -585,6 +653,8 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
         }
     )
 
+    
+    
     # start-snippet-5
     # compute the gradient of cost with respect to theta (sorted in params)
     # the resulting gradients will be stored in a list gparams
@@ -597,10 +667,17 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
     # B = [b1, b2, b3, b4], zip generates a list C of same size, where each
     # element is a pair formed from the two lists :
     #    C = [(a1, b1), (a2, b2), (a3, b3), (a4, b4)]
+    
+    ## ADADELTA
+    
+    
     updates = [
         (param, param - learning_rate * gparam)
         for param, gparam in zip(classifier.params, gparams)
     ]
+    
+    f_grad_shared, f_update = adadelta(learning_rate, classifier.params[0], gparams, x, y, cost)
+    
 
     # compiling a Theano function `train_model` that returns the cost, but
     # in the same time updates the parameter of the model based on the rules
@@ -743,10 +820,9 @@ if __name__ == '__main__':
     file_list = ['s0101a_dictio.words','s2501b_dictio.words','s2401a_dictio.words','s0102a_dictio.words','s1602a_dictio.words','s1802b_dictio.words','s1904a_dictio.words','s2101b_dictio.words']  
     
     results = []
-#    learningrate=0.03
-    for nepochs in range (600,5000, 200):    
-        for learningrate in numpy.arange(0.02, 0.06, 0.005):     
-            for batchsize in range (50,150,25):
+    for nepochs in range (100,200, 100):    
+        for learningrate in numpy.arange(0.005, 0.1, 0.005):     
+            for batchsize in range (5,100,20):
                              
                 os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
                 print('n_epochs = ', nepochs)
@@ -757,7 +833,7 @@ if __name__ == '__main__':
                 results.append([nepochs, learningrate, batchsize, validation_error])  
                 
     os.chdir("/home/ambroise/Documents/LSC-Internship/results")            
-    writer = csv.writer(open('results4.csv', 'wb'))            
+    writer = csv.writer(open('results2', 'wb'))            
     for nepochs, learningrate, batchsize, validation_error  in results:
         writer.writerow([nepochs, learningrate, batchsize, validation_error])
                 

@@ -1,0 +1,68 @@
+---
+title: "Distribution des contextes des phonemes, combiné ou non"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(plyr)
+library(ggplot2)
+
+dist <- read.csv("data/data_cleaned/GetStat_both.csv", header=F)
+dist_comb <- read.csv("data/data_cleaned/GetStat_combined.csv", header=F)
+names(dist) <- c("context", "context_comb", "phoneme", "count")
+names(dist_comb) <- c("context_comb", "phoneme", "count")
+```
+
+## Probability of most probable phoneme by context
+
+```{r prob}
+mean_count <- function(d) {
+  m <- mean(d$count)
+  result <- data.frame(mean_count=m)
+  return(result)
+}
+prob_max <- function(x) {
+  return(max(x)/sum(x))
+}
+
+phone_max <- function(x,y) {
+  return(x[which.max(y)])
+} 
+
+prob <- ddply(dist, .(context), summarize, mean_count=mean(count))
+prob <- ddply(dist, .(context), mean_count)
+
+prob <- ddply(dist, .(context), summarize,
+              context_comb=context_comb[1],
+              prob_max=prob_max(count),
+              phone_max=phone_max(phoneme, count),
+              prob_context=sum(count)/sum(dist$count))
+prob$weighted_error <- (1-prob$prob_max)*prob$prob_context
+new_levels <- prob$context[order(prob$weighted_error, decreasing = T)]
+prob$context <- factor(prob$context, levels=new_levels)
+ggplot(prob[prob$weighted_error>0.0030,], aes(x=context, y=weighted_error)) + geom_point()  + theme(axis.text.x = element_text(angle = 90))
+
+
+
+sprintf("stat. error rate = %s", sum((1-prob$prob_max)*prob$prob_context))
+```
+
+
+```{r prob-comb}
+
+prob_comb <- ddply(dist_comb, .(context_comb), summarize,
+              prob_max=prob_max(count),
+              phone_max=phone_max(phoneme, count),
+              prob_context=sum(count)/sum(dist_comb$count))
+prob_comb$weighted_error <- (1-prob_comb$prob_max)*prob_comb$prob_context
+new_levels <- prob_comb$context[order(prob_comb$weighted_error, decreasing = T)]
+prob_comb$context_comb <- factor(prob_comb$context_comb, levels=new_levels)
+ggplot(prob_comb[prob_comb$weighted_error>0.0030,], aes(x=context_comb, y=weighted_error)) + geom_point()  + theme(axis.text.x = element_text(angle = 90))
+
+
+
+sprintf("stat. error rate = %s", sum((1-prob_comb$prob_max)*prob_comb$prob_context))
+
+prob_both <- merge(prob, prob_comb,by=c("context_comb") )
+```
+

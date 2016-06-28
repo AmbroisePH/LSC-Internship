@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun  2 14:19:56 2016
+Created on Mon Jun 27 13:49:45 2016
 
 @author: ambroise
-
 
 GOAL: CBOW get phone from the previous one AND the next one. No influence of order in CBOW2
 
@@ -201,7 +200,43 @@ class LogisticRegression(object):
             raise NotImplementedError()
 
 
+def get_adagrad_trainer(self, debug=False):
+    """ Returns an Adagrad (Duchi et al. 2010) trainer using a learning rate.
+    """
+    batch_x = T.fmatrix('batch_x')
+    batch_y = T.ivector('batch_y')
+    learning_rate = T.fscalar('lr')  # learning rate to use
+    # compute the gradients with respect to the model parameters
+    gparams = T.grad(self.mean_cost, self.params)
 
+    # compute list of weights updates
+    updates = OrderedDict()
+    for accugrad, param, gparam in zip(self._accugrads, self.params, gparams):
+        # c.f. Algorithm 1 in the Adadelta paper (Zeiler 2012)
+        agrad = accugrad + gparam * gparam
+        dx = - (learning_rate / T.sqrt(agrad + self._eps)) * gparam
+        if self.max_norm:
+            W = param + dx
+            col_norms = W.norm(2, axis=0)
+            desired_norms = T.clip(col_norms, 0, self.max_norm)
+            updates[param] = W * (desired_norms / (1e-6 + col_norms))
+        else:
+            updates[param] = param + dx
+        updates[accugrad] = agrad
+
+    outputs = self.cost
+    if debug:
+        outputs = [self.cost] + self.params + gparams +\
+                [updates[param] for param in self.params]# +\
+
+    train_fn = theano.function(inputs=[theano.Param(batch_x), 
+        theano.Param(batch_y),
+        theano.Param(learning_rate)],
+        outputs=outputs,
+        updates=updates,
+        givens={self.x: batch_x, self.y: batch_y})
+
+    return train_fn
 
 def load_data(datasets):
     
@@ -743,10 +778,9 @@ if __name__ == '__main__':
     file_list = ['s0101a_dictio.words','s2501b_dictio.words','s2401a_dictio.words','s0102a_dictio.words','s1602a_dictio.words','s1802b_dictio.words','s1904a_dictio.words','s2101b_dictio.words']  
     
     results = []
-#    learningrate=0.03
-    for nepochs in range (600,5000, 200):    
-        for learningrate in numpy.arange(0.02, 0.06, 0.005):     
-            for batchsize in range (50,150,25):
+    for nepochs in range (10,1000, 200):    
+        for learningrate in numpy.arange(0.005, 0.1, 0.005):     
+            for batchsize in range (5,20,5):
                              
                 os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
                 print('n_epochs = ', nepochs)
@@ -757,7 +791,7 @@ if __name__ == '__main__':
                 results.append([nepochs, learningrate, batchsize, validation_error])  
                 
     os.chdir("/home/ambroise/Documents/LSC-Internship/results")            
-    writer = csv.writer(open('results4.csv', 'wb'))            
+    writer = csv.writer(open('results3.csv', 'wb'))            
     for nepochs, learningrate, batchsize, validation_error  in results:
         writer.writerow([nepochs, learningrate, batchsize, validation_error])
                 

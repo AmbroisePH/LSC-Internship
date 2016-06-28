@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun  2 14:19:56 2016
+Created on Wed Jun 22 15:27:56 2016
 
 @author: ambroise
-
+# -*- coding: utf-8 -*-
 
 GOAL: CBOW get phone from the previous one AND the next one. No influence of order in CBOW2
 
@@ -201,8 +201,112 @@ class LogisticRegression(object):
             raise NotImplementedError()
 
 
+#def adadelta(acc_drag_init = 0, acc_updates_init = 0, decay_rate=0.95, eps=1e-6, param, acc_grad_in, acc_updates_in):
+#    
+#    # compute gradient
+#    gparam = T.grad(cost, param)    
+#        
+#    # Accumulate gradient
+#    acc_grad_out = decay_rate*acc_grad_in + (1-decay_rate)*gparam*gparam
+#    
+#    # Update computation
+#    delta_param = -(tensor.sqrt(acc_updates + eps) / tensor.sqrt(acc_grad + eps)) * gparam
+#    
+#    # Accumulate updates
+#    acc_updates_out = decay_rate*acc_updates_in + (1-decay_rate)*delta_param*delta_param
+#    
+#    # Apply
+#    param = param
+#    
+#    return params, acc_grad_out, acc_updates_out
+    
+def adadelta0(param, cost, decay_rate=0.95, eps=1e-6):
+    
+    global acc_grad0
+    global acc_updates0
+    print(type(acc_grad0), type(acc_updates0))
 
 
+    # compute gradient 
+    gparam = T.grad(cost, param)    
+        
+    # Accumulate gradient
+    acc_grad0 = decay_rate*acc_grad0 + (1-decay_rate)*gparam*gparam
+    
+    # Update computation
+    delta_param = (T.sqrt(acc_updates0 + eps) / T.sqrt(acc_grad0 + eps)) * gparam
+    
+    # Accumulate updates
+    acc_updates0 = decay_rate*acc_updates0  + (1-decay_rate)*delta_param*delta_param
+    
+    # Apply
+    param = param - delta_param
+    
+    return param
+    
+def adadelta1(param, cost, decay_rate=0.95, eps=1e-6):
+    
+    global acc_grad1
+    global acc_updates1
+    # compute gradient
+    gparam = T.grad(cost, param)    
+        
+    # Accumulate gradient
+    acc_grad1 = decay_rate*acc_grad1 + (1-decay_rate)*gparam*gparam
+    
+    # Update computation
+    delta_param = (T.sqrt(acc_updates1 + eps) / T.sqrt(acc_grad1 + eps)) * gparam
+    
+    # Accumulate updates
+    acc_updates1 = decay_rate*acc_updates1  + (1-decay_rate)*delta_param*delta_param
+    
+    # Apply
+    param = param - delta_param
+    
+    return param
+
+def adadelta2(param, cost, decay_rate=0.95, eps=1e-6):
+    
+    global acc_grad2
+    global acc_updates2
+    # compute gradient
+    gparam = T.grad(cost, param)    
+        
+    # Accumulate gradient
+    acc_grad2 = decay_rate*acc_grad2 + (1-decay_rate)*gparam*gparam
+    
+    # Update computation
+    delta_param = (T.sqrt(acc_updates2 + eps) / T.sqrt(acc_grad2 + eps)) * gparam
+    
+    # Accumulate updates
+    acc_updates2 = decay_rate*acc_updates2  + (1-decay_rate)*delta_param*delta_param
+    
+    # Apply
+    param = param - delta_param
+    
+    return param
+    
+def adadelta3(param, cost, decay_rate=0.95, eps=1e-6):
+    
+    global acc_grad3
+    global acc_updates3
+    # compute gradient
+    gparam = T.grad(cost, param)    
+        
+    # Accumulate gradient
+    acc_grad3 = decay_rate*acc_grad3 + (1-decay_rate)*gparam*gparam
+    
+    # Update computation
+    delta_param = (T.sqrt(acc_updates3 + eps) / T.sqrt(acc_grad3 + eps)) * gparam
+    
+    # Accumulate updates
+    acc_updates3 = decay_rate*acc_updates3  + (1-decay_rate)*delta_param*delta_param
+    
+    # Apply
+    param = param - delta_param
+    
+    return param  
+    
 def load_data(datasets):
     
     #load buckeye dictionary 
@@ -482,17 +586,13 @@ class MLP(object):
         self.input = input
 
 
-def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
+def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
               batch_size=10, n_hidden=30):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
 
     This is demonstrated on MNIST.
-
-    :type learning_rate: float
-    :param learning_rate: learning rate used (factor for the stochastic
-    gradient
 
     :type L1_reg: float
     :param L1_reg: L1-norm's weight when added to the cost (see
@@ -545,7 +645,7 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
 
     rng = numpy.random.RandomState(1234)
 
-    # construct the MLP classb
+    # construct the MLP class
     classifier = MLP(
         rng=rng,
         input=x,
@@ -584,31 +684,41 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
             y: valid_set_y[index * batch_size:(index + 1) * batch_size]
         }
     )
+    
 
+        
     # start-snippet-5
     # compute the gradient of cost with respect to theta (sorted in params)
     # the resulting gradients will be stored in a list gparams
-    gparams = [T.grad(cost, param) for param in classifier.params]
+        
+    #gparams = [T.grad(cost, param) for param in classifier.params]
 
     # specify how to update the parameters of the model as a list of
     # (variable, update expression) pairs
 
-    # given two lists of the same length, A = [a1, a2, a3, a4] and
+    # given two lists of the same length, A = [a1, a2, a3, a4] and1
     # B = [b1, b2, b3, b4], zip generates a list C of same size, where each
     # element is a pair formed from the two lists :
     #    C = [(a1, b1), (a2, b2), (a3, b3), (a4, b4)]
-    updates = [
-        (param, param - learning_rate * gparam)
-        for param, gparam in zip(classifier.params, gparams)
-    ]
 
+    
+#    updates = [
+#        (param, adadelta(param))
+#        for param, gparam in zip(classifier.params, gparams)
+#    ]
+    updatesa = [(classifier.params[0], adadelta0(classifier.params[0],cost)),
+        (classifier.params[1], adadelta1(classifier.params[1],cost)),
+        (classifier.params[2], adadelta2(classifier.params[2],cost)),
+        (classifier.params[3], adadelta3(classifier.params[3],cost))
+    ]
+    print(acc_grad0, acc_updates0)
     # compiling a Theano function `train_model` that returns the cost, but
     # in the same time updates the parameter of the model based on the rules
     # defined in `updates`
     train_model = theano.function(
         inputs=[index],
         outputs=cost,
-        updates=updates,
+        updates=updatesa,
         givens={
             x: train_set_x[index * batch_size: (index + 1) * batch_size],
             y: train_set_y[index * batch_size: (index + 1) * batch_size]
@@ -707,18 +817,18 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
 #                         pickle.dump(classifier.logRegressionLayer, f)
                     os.chdir("/home/ambroise/Documents/LSC-Internship/results")     
                     
-                    SavedModel_name = ('BestModelCBOW2_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+                    SavedModel_name = ('BestModelCBOW2_%i_%i.pkl' % ( n_epochs, batch_size))
                     #print('filename for saved model: ', SavedModel_name)                    
                     with open(SavedModel_name, 'wb') as f:
                          pickle.dump(classifier.params, f)  
                     
                     
-                    ValidationLosses_name = ('ValidationLosses_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+                    ValidationLosses_name = ('ValidationLosses_%i_%i.pkl' % ( n_epochs, batch_size))
                     #print('filename for ValidationLosses: ', ValidationLosses_name)                    
                     with open(ValidationLosses_name, 'wb') as f:
                          pickle.dump(ValidationLosses, f) 
                     
-                    ValidationLosses_name2 = ('ValidationLosses_%.2f_%i_%i.csv' % (learning_rate, n_epochs, batch_size))
+                    ValidationLosses_name2 = ('ValidationLosses_%i_%i.csv' % ( n_epochs, batch_size))
                     writer = csv.writer(open(ValidationLosses_name2, 'wb'))
                     for ValidationLoss in ValidationLosses:
                         writer.writerow([ValidationLoss])                         
@@ -740,27 +850,52 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
     return best_validation_loss
 
 if __name__ == '__main__':
+    theano.config.exception_verbosity='high'
     file_list = ['s0101a_dictio.words','s2501b_dictio.words','s2401a_dictio.words','s0102a_dictio.words','s1602a_dictio.words','s1802b_dictio.words','s1904a_dictio.words','s2101b_dictio.words']  
     
+    
+
+    acc_grad0_init = 0
+    acc_grad0 = theano.shared(acc_grad0_init)
+    acc_updates0_init = 0
+    acc_updates0 = theano.shared(acc_updates0_init)
+    
+    acc_grad1_init = 0
+    acc_grad1 = theano.shared(acc_grad1_init)
+    acc_updates1_init = 0
+    acc_updates1 = theano.shared(acc_updates1_init)
+    
+    acc_grad2_init = 0
+    acc_grad2 = theano.shared(acc_grad2_init)
+    acc_updates2_init = 0
+    acc_updates2 = theano.shared(acc_updates2_init)
+    
+    acc_grad3_init = 0
+    acc_grad3 = theano.shared(acc_grad3_init)
+    acc_updates3_init = 0
+    acc_updates3 = theano.shared(acc_updates3_init)
+
+    
+
     results = []
-#    learningrate=0.03
-    for nepochs in range (600,5000, 200):    
-        for learningrate in numpy.arange(0.02, 0.06, 0.005):     
-            for batchsize in range (50,150,25):
-                             
-                os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
-                print('n_epochs = ', nepochs)
-                print('learning rate = ', learningrate)
-                print('batchsize = ', batchsize)
-                validation_error = test_mlp(file_list,learning_rate=learningrate,n_epochs=nepochs, batch_size = batchsize, n_hidden=30)
-                print(nepochs, learningrate, batchsize, validation_error)
-                results.append([nepochs, learningrate, batchsize, validation_error])  
+    for nepochs in range (20,1400, 200):     
+        for batchsize in range (20,200,10):
+                         
+            os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
+            print('n_epochs = ', nepochs)
+           
+            print('batchsize = ', batchsize)
+            validation_error = test_mlp(file_list,n_epochs=nepochs, batch_size = batchsize, n_hidden=30)
+            print(nepochs, batchsize, validation_error)
+            results.append([nepochs, batchsize, validation_error])  
                 
     os.chdir("/home/ambroise/Documents/LSC-Internship/results")            
     writer = csv.writer(open('results4.csv', 'wb'))            
-    for nepochs, learningrate, batchsize, validation_error  in results:
-        writer.writerow([nepochs, learningrate, batchsize, validation_error])
+    for nepochs, batchsize, validation_error  in results:
+        writer.writerow([nepochs, batchsize, validation_error])
                 
     #print(results)
 
                   
+
+
