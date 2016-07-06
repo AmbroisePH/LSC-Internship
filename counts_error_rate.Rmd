@@ -1,0 +1,57 @@
+---
+title: "Counts notebook"
+output: html_notebook
+---
+
+```{r setup, include=F}
+library(dplyr)
+library(readr)
+which_bayes_guess <- function(p) {
+  return(which.max(p)[1])
+}
+bayes_error <- function(p) {
+  return(sum(p[-which_bayes_guess(p)]))
+}
+```
+
+```{r load, echo=F}
+counts <- read_csv("GetStat.csv")
+counts_bow <- counts %>%
+  group_by(ctx_1, ctx_2, center) %>%
+  summarize(count=sum(count))
+```
+
+```{r show-data}
+head(counts)
+head(counts_bow)
+```
+
+```{r error}
+error <- counts %>%
+  group_by(l, r, ctx_1, ctx_2) %>%
+  summarize(error=bayes_error(count/sum(count)),
+            frequency=sum(count),
+            bayes_guess=center[which_bayes_guess(count/sum(count))],
+            count_bayes_guess=count[which_bayes_guess(count/sum(count))]
+            )
+error_bow <- counts_bow %>%
+  group_by(ctx_1, ctx_2) %>%
+  summarize(error=bayes_error(count/sum(count)),
+            frequency=sum(count),
+            bayes_guess=center[which_bayes_guess(count/sum(count))],
+            count_bayes_guess=count[which_bayes_guess(count/sum(count))]
+            )
+head(error)
+head(error_bow)
+```
+
+```{r comparison}
+error_wide <- error %>%
+  group_by(ctx_1, ctx_2) %>%
+  summarize(sub_bgs=paste0(bayes_guess, collapse=","),
+            sub_error=sum(error*frequency/sum(frequency)))
+error_comparison <- inner_join(error_wide, error_bow, by=c("ctx_1", "ctx_2"))
+error_comparison %>% filter(sub_error > error)
+with(error_comparison, sum(sub_error*frequency/sum(frequency)))
+with(error_comparison, sum(error*frequency/sum(frequency)))
+```
