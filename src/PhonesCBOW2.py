@@ -58,6 +58,7 @@ import os
 import sys
 import timeit
 import codecs as cd
+import random
 
 from gensim import corpora, models, similarities
 
@@ -85,7 +86,7 @@ class LogisticRegression(object):
     determine a class membership probability.
     """
 
-    def __init__(self, input, n_in, n_out):
+    def __init__(self, input, n_in_LR, n_out):
         """ Initialize the parameters of the logistic regression
 
         :type input: theano.tensor.TensorType
@@ -101,11 +102,12 @@ class LogisticRegression(object):
                       which the labels lie
 
         """
+  
         # start-snippet-1
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         self.W = theano.shared(
             value=numpy.zeros(
-                (n_in, n_out),
+                (n_in_LR, n_out),
                 dtype=theano.config.floatX
             ),
             name='W',
@@ -230,12 +232,16 @@ def load_data(datasets):
     print("n_examples = ", n_examples)
     
     train_set_x = numpy.zeros((n_examples,n_in),dtype='int')
+    train_set_y = numpy.zeros((n_examples,),dtype='int')
+    
+    index_vec =   [i for i in range (1,n_examples-1)]
+    random.shuffle(index_vec)
     
     
-    for i in range (1,n_examples-1):
+    for i in index_vec:
         train_set_x[i,dico[text[i-1]]] =  1
         train_set_x[i,dico[text[i+1]]] = 1
-   
+        train_set_y[i] = dico[text[i]]
     print(train_set_x)
     
 #    for i in range (0,n_examples):
@@ -243,10 +249,7 @@ def load_data(datasets):
     
         
     
-    train_set_y = numpy.zeros((n_examples,),dtype='int')
-    for i in range (0,n_examples):
-        train_set_y[i] = dico[text[i]]   
-    
+
 #    train_set_y[n_examples-1]=numpy.nonzero(train_set_x[0])[0]
 #    for i in range (0,n_examples-2):
 #        train_set_y[i]=numpy.nonzero(train_set_x[i+1])[0]
@@ -446,7 +449,7 @@ class MLP(object):
         # of the hidden layer
         self.logRegressionLayer = LogisticRegression(
             input=self.hiddenLayer.output,
-            n_in=n_hidden,
+            n_in_LR=n_hidden,
             n_out=n_out
         )
         # end-snippet-2 start-snippet-3
@@ -705,7 +708,7 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
 #                         
 #                    with open('best_model_MLP1_LogRegressionLayer.pkl', 'wb') as f:
 #                         pickle.dump(classifier.logRegressionLayer, f)
-                    os.chdir("/home/ambroise/Documents/LSC-Internship/results")     
+                    os.chdir("/home/ambroise/Documents/LSC-Internship/results/PhonesCBOW2")     
                     
                     SavedModel_name = ('BestModelCBOW2_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
                     #print('filename for saved model: ', SavedModel_name)                    
@@ -713,15 +716,15 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
                          pickle.dump(classifier.params, f)  
                     
                     
-                    ValidationLosses_name = ('ValidationLosses_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
-                    #print('filename for ValidationLosses: ', ValidationLosses_name)                    
-                    with open(ValidationLosses_name, 'wb') as f:
-                         pickle.dump(ValidationLosses, f) 
-                    
-                    ValidationLosses_name2 = ('ValidationLosses_%.2f_%i_%i.csv' % (learning_rate, n_epochs, batch_size))
-                    writer = csv.writer(open(ValidationLosses_name2, 'wb'))
-                    for ValidationLoss in ValidationLosses:
-                        writer.writerow([ValidationLoss])                         
+#                    ValidationLosses_name = ('ValidationLosses_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+#                    #print('filename for ValidationLosses: ', ValidationLosses_name)                    
+#                    with open(ValidationLosses_name, 'wb') as f:
+#                         pickle.dump(ValidationLosses, f) 
+#                    
+#                    ValidationLosses_name2 = ('ValidationLosses_%.2f_%i_%i.csv' % (learning_rate, n_epochs, batch_size))
+#                    writer = csv.writer(open(ValidationLosses_name2, 'wb'))
+#                    for ValidationLoss in ValidationLosses:
+#                        writer.writerow([ValidationLoss])                         
 #                    with open('best_model_MLP1_params2.pkl', 'wbwb') as f:
 #                         pickle.dump(classifier.params, f)     
 
@@ -744,7 +747,7 @@ if __name__ == '__main__':
     
     results = []
 #    learningrate=0.03
-    for nepochs in range (600,5000, 200):    
+    for nepochs in range (600,3200, 200):    
         for learningrate in numpy.arange(0.02, 0.06, 0.005):     
             for batchsize in range (50,150,25):
                              
@@ -754,10 +757,11 @@ if __name__ == '__main__':
                 print('batchsize = ', batchsize)
                 validation_error = test_mlp(file_list,learning_rate=learningrate,n_epochs=nepochs, batch_size = batchsize, n_hidden=30)
                 print(nepochs, learningrate, batchsize, validation_error)
+                print("#####################################################")
                 results.append([nepochs, learningrate, batchsize, validation_error])  
                 
-    os.chdir("/home/ambroise/Documents/LSC-Internship/results")            
-    writer = csv.writer(open('results4.csv', 'wb'))            
+    os.chdir("/home/ambroise/Documents/LSC-Internship/results/PhonesCBOW2")            
+    writer = csv.writer(open('results5.csv', 'wb'))            
     for nepochs, learningrate, batchsize, validation_error  in results:
         writer.writerow([nepochs, learningrate, batchsize, validation_error])
                 

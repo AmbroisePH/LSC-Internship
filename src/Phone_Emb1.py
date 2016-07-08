@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun 22 15:27:56 2016
+Created on Wed Jun 29 14:51:00 2016
 
 @author: ambroise
-# -*- coding: utf-8 -*-
 
-GOAL: CBOW get phone from the previous one AND the next one. No influence of order in CBOW2
-
+GOAL: Phone_Emb2 get phone from the previous one AND the next one. Order deos matter (concatanation)
+      The transform of the left and right context in the firs hidden layer is NOT the same.
+      
 Input: output of GetPhones_dictio
 
 Output: W model
 
-Input of the NN is the sum of two one-hot vectors corresponding to previous and next phones.
+Input of the NN are two one-hot vectors corresponding to previous and next phones.
 
 This tutorial introduces logistic regression using Theano and stochastic
 gradient descent.    self.HL_output = (
@@ -58,6 +58,7 @@ import os
 import sys
 import timeit
 import codecs as cd
+import random
 
 from gensim import corpora, models, similarities
 
@@ -85,7 +86,7 @@ class LogisticRegression(object):
     determine a class membership probability.
     """
 
-    def __init__(self, input, n_in, n_out):
+    def __init__(self, input, n_in_LR, n_out):
         """ Initialize the parameters of the logistic regression
 
         :type input: theano.tensor.TensorType
@@ -105,7 +106,7 @@ class LogisticRegression(object):
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         self.W = theano.shared(
             value=numpy.zeros(
-                (n_in, n_out),
+                (n_in_LR, n_out),
                 dtype=theano.config.floatX
             ),
             name='W',
@@ -201,112 +202,8 @@ class LogisticRegression(object):
             raise NotImplementedError()
 
 
-#def adadelta(acc_drag_init = 0, acc_updates_init = 0, decay_rate=0.95, eps=1e-6, param, acc_grad_in, acc_updates_in):
-#    
-#    # compute gradient
-#    gparam = T.grad(cost, param)    
-#        
-#    # Accumulate gradient
-#    acc_grad_out = decay_rate*acc_grad_in + (1-decay_rate)*gparam*gparam
-#    
-#    # Update computation
-#    delta_param = -(tensor.sqrt(acc_updates + eps) / tensor.sqrt(acc_grad + eps)) * gparam
-#    
-#    # Accumulate updates
-#    acc_updates_out = decay_rate*acc_updates_in + (1-decay_rate)*delta_param*delta_param
-#    
-#    # Apply
-#    param = param
-#    
-#    return params, acc_grad_out, acc_updates_out
-    
-def adadelta0(param, cost, decay_rate=0.95, eps=1e-6):
-    
-    global acc_grad0
-    global acc_updates0
-    print(type(acc_grad0), type(acc_updates0))
 
 
-    # compute gradient 
-    gparam = T.grad(cost, param)    
-        
-    # Accumulate gradient
-    acc_grad0 = decay_rate*acc_grad0 + (1-decay_rate)*gparam*gparam
-    
-    # Update computation
-    delta_param = (T.sqrt(acc_updates0 + eps) / T.sqrt(acc_grad0 + eps)) * gparam
-    
-    # Accumulate updates
-    acc_updates0 = decay_rate*acc_updates0  + (1-decay_rate)*delta_param*delta_param
-    
-    # Apply
-    param = param - delta_param
-    
-    return param
-    
-def adadelta1(param, cost, decay_rate=0.95, eps=1e-6):
-    
-    global acc_grad1
-    global acc_updates1
-    # compute gradient
-    gparam = T.grad(cost, param)    
-        
-    # Accumulate gradient
-    acc_grad1 = decay_rate*acc_grad1 + (1-decay_rate)*gparam*gparam
-    
-    # Update computation
-    delta_param = (T.sqrt(acc_updates1 + eps) / T.sqrt(acc_grad1 + eps)) * gparam
-    
-    # Accumulate updates
-    acc_updates1 = decay_rate*acc_updates1  + (1-decay_rate)*delta_param*delta_param
-    
-    # Apply
-    param = param - delta_param
-    
-    return param
-
-def adadelta2(param, cost, decay_rate=0.95, eps=1e-6):
-    
-    global acc_grad2
-    global acc_updates2
-    # compute gradient
-    gparam = T.grad(cost, param)    
-        
-    # Accumulate gradient
-    acc_grad2 = decay_rate*acc_grad2 + (1-decay_rate)*gparam*gparam
-    
-    # Update computation
-    delta_param = (T.sqrt(acc_updates2 + eps) / T.sqrt(acc_grad2 + eps)) * gparam
-    
-    # Accumulate updates
-    acc_updates2 = decay_rate*acc_updates2  + (1-decay_rate)*delta_param*delta_param
-    
-    # Apply
-    param = param - delta_param
-    
-    return param
-    
-def adadelta3(param, cost, decay_rate=0.95, eps=1e-6):
-    
-    global acc_grad3
-    global acc_updates3
-    # compute gradient
-    gparam = T.grad(cost, param)    
-        
-    # Accumulate gradient
-    acc_grad3 = decay_rate*acc_grad3 + (1-decay_rate)*gparam*gparam
-    
-    # Update computation
-    delta_param = (T.sqrt(acc_updates3 + eps) / T.sqrt(acc_grad3 + eps)) * gparam
-    
-    # Accumulate updates
-    acc_updates3 = decay_rate*acc_updates3  + (1-decay_rate)*delta_param*delta_param
-    
-    # Apply
-    param = param - delta_param
-    
-    return param  
-    
 def load_data(datasets):
     
     #load buckeye dictionary 
@@ -333,29 +230,35 @@ def load_data(datasets):
     n_examples=len(text)
     print("n_examples = ", n_examples)
     
-    train_set_x = numpy.zeros((n_examples,n_in),dtype='int')
+    train_set_x_left = numpy.zeros((n_examples,n_in),dtype='int')
+    train_set_x_right = numpy.zeros((n_examples,n_in),dtype='int')
+    train_set_y = numpy.zeros((n_examples,),dtype='int')
     
+    index_vec =   [i for i in range (1,n_examples-1)]
     
-    for i in range (1,n_examples-1):
-        train_set_x[i,dico[text[i-1]]] =  1
-        train_set_x[i,dico[text[i+1]]] = 1
-   
-    print(train_set_x)
+    random.shuffle(index_vec)
+    
+    for i in index_vec:
+        train_set_x_left[i,dico[text[i-1]]] =  1
+        train_set_x_right[i,dico[text[i+1]]] = 1
+        train_set_y[i] = dico[text[i]]
+    #train_set_x = T.concatenate([train_set_x_left, train_set_x_right])
+    #print(train_set_x)
     
 #    for i in range (0,n_examples):
 #        print(sum(train_set_x[i,]))
     
         
     
-    train_set_y = numpy.zeros((n_examples,),dtype='int')
-    for i in range (1,n_examples-1):
-        train_set_y[i] = dico[text[i]]   
+    
+#    for i in range (1,n_examples-1):
+#        train_set_y[i] = dico[text[i]]   
     
 #    train_set_y[n_examples-1]=numpy.nonzero(train_set_x[0])[0]
 #    for i in range (0,n_examples-2):
 #        train_set_y[i]=numpy.nonzero(train_set_x[i+1])[0]
 #            
-    print(train_set_y)
+    #print(train_set_y)
 
     
     ''' Loads the dataset
@@ -365,18 +268,20 @@ def load_data(datasets):
     '''
     len_train_set = math.floor(n_examples*0.8)
     len_valid_set = math.floor(n_examples*0.9)
-    print(n_examples,len_train_set,len_valid_set)
+    ##print(n_examples,len_train_set,len_valid_set)
+
 
     
-    arr = (train_set_x[:len_train_set],train_set_y[:len_train_set])
+    arr = (train_set_x_left[:len_train_set],train_set_x_right[:len_train_set],train_set_y[:len_train_set])
     train_set = tuple(map(tuple, arr))
 
-    arr = (train_set_x[len_train_set+1:len_valid_set],train_set_y[len_train_set+1:len_valid_set])
+    arr = (train_set_x_left[len_train_set+1:len_valid_set],train_set_x_right[len_train_set+1:len_valid_set],train_set_y[len_train_set+1:len_valid_set])
     valid_set = tuple(map(tuple, arr))
 
-    arr = (train_set_x[len_valid_set + 1:],train_set_y[len_valid_set + 1:])
-    test_set = tuple(map(tuple, arr))    
+    arr = (train_set_x_left[len_valid_set + 1:],train_set_x_right[len_valid_set + 1:],train_set_y[len_valid_set + 1:])
+    test_set = tuple(map(tuple, arr))
 
+    
     def shared_dataset(data_xy, borrow=True):
             """ Function that loads the dataset into shared variables
     
@@ -386,10 +291,15 @@ def load_data(datasets):
             is needed (the default behaviour if the data is not in a shared
             variable) would lead to a large decrease in performance.
             """
-            data_x, data_y = data_xy
-            shared_x = theano.shared(numpy.asarray(data_x,
+            data_x_left, data_x_right, data_y = data_xy
+            shared_x_left = theano.shared(numpy.asarray(data_x_left,
                                                    dtype=theano.config.floatX),
                                      borrow=borrow)
+                                     
+            shared_x_right = theano.shared(numpy.asarray(data_x_right,
+                                                   dtype=theano.config.floatX),
+                                     borrow=borrow)
+                                     
             shared_y = theano.shared(numpy.asarray(data_y,
                                                    dtype=theano.config.floatX),
                                      borrow=borrow)
@@ -400,29 +310,35 @@ def load_data(datasets):
             # floats it doesn't make sense) therefore instead of returning
             # ``shared_y`` we will have to cast it to int. This little hack
             # lets ous get around this issue
-            return shared_x, T.cast(shared_y, 'int32')
+            return shared_x_left, shared_x_right, T.cast(shared_y, 'int32')
     
-    train_set_x, train_set_y = shared_dataset(train_set)
-    valid_set_x, valid_set_y = shared_dataset(valid_set)
-    test_set_x, test_set_y = shared_dataset(test_set)
-
-    print(train_set_x.eval().shape)
+    train_set_x_left, train_set_x_right, train_set_y = shared_dataset(train_set)
+    valid_set_x_left, valid_set_x_right, valid_set_y = shared_dataset(valid_set)
+    test_set_x_left, test_set_x_right, test_set_y = shared_dataset(test_set)
+    
+    
+#    test = T.concatenate([train_set_x_left,train_set_x_right], axis=1)
+#    print(test.eval().shape)
+#    
+    
+#    
+    print(train_set_x_left.eval().shape)
     print(train_set_y.eval().shape)
-    print(valid_set_x.eval().shape)
+    print(valid_set_x_left.eval().shape)
     print(valid_set_y.eval().shape)
-    print(test_set_x.eval().shape)
+    print(test_set_x_left.eval().shape)
     print(test_set_y.eval().shape)
-    
-    rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
-              (test_set_x, test_set_y)]
+#    print(train_set_x_right.eval().shape)
+#    print(train_set_y.eval().shape)
+#    print(valid_set_x_right.eval().shape)
+#    print(valid_set_y.eval().shape)
+#    print(test_set_x_right.eval().shape)
+#    print(test_set_y.eval().shape)
+#    
+    rval = [(train_set_x_left, train_set_x_right, train_set_y), (valid_set_x_left, valid_set_x_right, valid_set_y),
+              (test_set_x_left, test_set_x_right, test_set_y)]
     return rval
-    
-    print(train_set_x.eval().shape)
-    print(train_set_y.eval().shape)
-    print(valid_set_x.eval().shape)
-    print(valid_set_y.eval().shape)
-    print(test_set_x.eval().shape)
-    print(test_set_y.eval().shape)
+
 
 
 # start-snippet-1
@@ -445,7 +361,7 @@ class HiddenLayer(object):
         :param input: a symbolic tensor of shape (n_examples, n_in)
 
         :type n_in: int
-        :param n_in: dimensionality of input
+        :param n_in: dimensionality of inputT.concatenate([
 
         :type n_out: int
         :param n_out: number of hidden units
@@ -538,9 +454,17 @@ class MLP(object):
         # into a HiddenLayer with a tanh activation function connected to the
         # LogisticRegression layer; the activation function can be replaced by
         # sigmoid or any other nonlinear function
-        self.hiddenLayer = HiddenLayer(
+        self.hiddenLayer_left = HiddenLayer(
             rng=rng,
-            input=input,
+            input=input[0],
+            n_in=n_in,
+            n_out=n_hidden,
+            activation=T.tanh
+        )
+        
+        self.hiddenLayer_right = HiddenLayer(
+            rng=rng,
+            input=input[1],
             n_in=n_in,
             n_out=n_hidden,
             activation=T.tanh
@@ -549,22 +473,24 @@ class MLP(object):
         # The logistic regression layer gets as input the hidden units
         # of the hidden layer
         self.logRegressionLayer = LogisticRegression(
-            input=self.hiddenLayer.output,
-            n_in=n_hidden,
+            input=T.concatenate([self.hiddenLayer_left.output,self.hiddenLayer_right.output], axis=1),
+            n_in_LR=2*n_hidden,  # 2 car concaténation
             n_out=n_out
         )
         # end-snippet-2 start-snippet-3
         # L1 norm ; one regularizat10ion option is to enforce L1 norm to
         # be small
         self.L1 = (
-            abs(self.hiddenLayer.W).sum()
+            abs(self.hiddenLayer_left.W).sum()
+            + abs(self.hiddenLayer_right.W).sum()
             + abs(self.logRegressionLayer.W).sum()
         )
 
         # square of L2 norm ; one regularization option is to enforce
         # square of L2 norm to be small
         self.L2_sqr = (
-            (self.hiddenLayer.W ** 2).sum()
+            (self.hiddenLayer_left.W ** 2).sum()
+            + (self.hiddenLayer_right.W ** 2).sum()
             + (self.logRegressionLayer.W ** 2).sum()
         )
 
@@ -579,20 +505,24 @@ class MLP(object):
 
         # the parameters of the model are the parameters of the two layer it is
         # made out of
-        self.params = self.hiddenLayer.params + self.logRegressionLayer.params
+        self.params = self.hiddenLayer_left.params + self.hiddenLayer_right.params + self.logRegressionLayer.params
         # end-snippet-3
 
         # keep track of model input
         self.input = input
 
 
-def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
+def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
               batch_size=10, n_hidden=30):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
 
     This is demonstrated on MNIST.
+
+    :type learning_rate: float
+    :param learning_rate: learning rate used (factor for the stochastic
+    gradient
 
     :type L1_reg: float
     :param L1_reg: L1-norm's weight when added to the cost (see
@@ -613,25 +543,32 @@ def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
    """
     datasets = load_data(file_list)
 
-    train_set_x, train_set_y = datasets[0]
-    valid_set_x, valid_set_y = datasets[1]
-    test_set_x, test_set_y = datasets[2]
-
-    print(train_set_x.eval().shape)
-    print(train_set_y.eval().shape)
-    print(valid_set_x.eval().shape)
-    print(valid_set_y.eval().shape)
-    print(test_set_x.eval().shape)
-    print(test_set_y.eval().shape)
+    train_set_x_left, train_set_x_right, train_set_y = datasets[0]
+    valid_set_x_left, valid_set_x_right, valid_set_y = datasets[1]
+    test_set_x_left, test_set_x_right, test_set_y = datasets[2]
+#
+#    print(train_set_x_left.eval().shape)
+#    print(train_set_y.eval().shape)
+#    print(valid_set_x_left.eval().shape)
+#    print(valid_set_y.eval().shape)
+#    print(test_set_x_left.eval().shape)
+#    print(test_set_y.eval().shape)
+#    print(train_set_x_right.eval().shape)
+#    print(train_set_y.eval().shape)
+#    print(valid_set_x_right.eval().shape)
+#    print(valid_set_y.eval().shape)
+#    print(test_set_x_right.eval().shape)
+#    print(test_set_y.eval().shape)
     
-    n_in = train_set_x.get_value().shape[1]
+    n_in = train_set_x_left.get_value().shape[1]
     print(n_in)
 
     # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] // batch_size
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0] // batch_size
-
+    n_train_batches = train_set_x_left.get_value(borrow=True).shape[0] // batch_size
+    n_valid_batches = valid_set_x_left.get_value(borrow=True).shape[0] // batch_size
+    n_test_batches = test_set_x_left.get_value(borrow=True).shape[0] // batch_size
+    
+    print("n train batches", n_train_batches)
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -639,16 +576,17 @@ def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to a [mini]batch
-    x = T.matrix('x')  # the data is presented as rasterized images
+    x_left = T.matrix('x_left')  # the data is presented as rasterized images
+    x_right = T.matrix('x_right')  # the data is presented as rasterized images
     y = T.ivector('y')  # the labels are presented as 1D vector of
                         # [int] labelstrain_set_x.get_value(borrow=True).shape[0]
 
     rng = numpy.random.RandomState(1234)
 
-    # construct the MLP class
+    # construct the MLP classb
     classifier = MLP(
         rng=rng,
-        input=x,
+        input=(x_left, x_right),
         n_in=n_in,
         n_hidden=n_hidden,
         n_out=n_in
@@ -671,7 +609,8 @@ def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
         inputs=[index],
         outputs=classifier.errors(y),
         givens={
-            x: test_set_x[index * batch_size:(index + 1) * batch_size],
+            x_left: test_set_x_left[index * batch_size:(index + 1) * batch_size],
+            x_right: test_set_x_right[index * batch_size:(index + 1) * batch_size],
             y: test_set_y[index * batch_size:(index + 1) * batch_size]
         }
     )
@@ -680,48 +619,40 @@ def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
         inputs=[index],
         outputs=classifier.errors(y),
         givens={
-            x: valid_set_x[index * batch_size:(index + 1) * batch_size],
-            y: valid_set_y[index * batch_size:(index + 1) * batch_size]
+            x_left: test_set_x_left[index * batch_size:(index + 1) * batch_size],
+            x_right: test_set_x_right[index * batch_size:(index + 1) * batch_size],
+            y: test_set_y[index * batch_size:(index + 1) * batch_size]
         }
     )
-    
 
-        
     # start-snippet-5
     # compute the gradient of cost with respect to theta (sorted in params)
     # the resulting gradients will be stored in a list gparams
-        
-    #gparams = [T.grad(cost, param) for param in classifier.params]
+    gparams = [T.grad(cost, param) for param in classifier.params]
 
     # specify how to update the parameters of the model as a list of
     # (variable, update expression) pairs
 
-    # given two lists of the same length, A = [a1, a2, a3, a4] and1
+    # given two lists of the same length, A = [a1, a2, a3, a4] and
     # B = [b1, b2, b3, b4], zip generates a list C of same size, where each
     # element is a pair formed from the two lists :
     #    C = [(a1, b1), (a2, b2), (a3, b3), (a4, b4)]
-
-    
-#    updates = [
-#        (param, adadelta(param))
-#        for param, gparam in zip(classifier.params, gparams)
-#    ]
-    updatesa = [(classifier.params[0], adadelta0(classifier.params[0],cost)),
-        (classifier.params[1], adadelta1(classifier.params[1],cost)),
-        (classifier.params[2], adadelta2(classifier.params[2],cost)),
-        (classifier.params[3], adadelta3(classifier.params[3],cost))
+    updates = [
+        (param, param - learning_rate * gparam)
+        for param, gparam in zip(classifier.params, gparams)
     ]
-    print(acc_grad0, acc_updates0)
+
     # compiling a Theano function `train_model` that returns the cost, but
     # in the same time updates the parameter of the model based on the rules
     # defined in `updates`
     train_model = theano.function(
         inputs=[index],
         outputs=cost,
-        updates=updatesa,
+        updates=updates,
         givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size],
-            y: train_set_y[index * batch_size: (index + 1) * batch_size]
+            x_left: test_set_x_left[index * batch_size:(index + 1) * batch_size],
+            x_right: test_set_x_right[index * batch_size:(index + 1) * batch_size],
+            y: test_set_y[index * batch_size:(index + 1) * batch_size]
         }
     )
     # end-snippet-5
@@ -795,7 +726,7 @@ def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
                     test_losses = [test_model(i) for i
                                    in range(n_test_batches)]
                     test_score = numpy.mean(test_losses)
-
+#
 #                    print(('     epoch %i, minibatch %i/%i, test error of '
 #                           'best model %f %%') %
 #                          (epoch, minibatch_index + 1, n_train_batches,
@@ -815,23 +746,23 @@ def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 #                         
 #                    with open('best_model_MLP1_LogRegressionLayer.pkl', 'wb') as f:
 #                         pickle.dump(classifier.logRegressionLayer, f)
-                    os.chdir("/home/ambroise/Documents/LSC-Internship/results")     
+                    os.chdir("/home/ambroise/Documents/LSC-Internship/results/Phone_Emb1")     
                     
-                    SavedModel_name = ('BestModelCBOW2_%i_%i.pkl' % ( n_epochs, batch_size))
+                    SavedModel_name = ('BestModelCBOW2_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
                     #print('filename for saved model: ', SavedModel_name)                    
                     with open(SavedModel_name, 'wb') as f:
                          pickle.dump(classifier.params, f)  
                     
-                    
-                    ValidationLosses_name = ('ValidationLosses_%i_%i.pkl' % ( n_epochs, batch_size))
-                    #print('filename for ValidationLosses: ', ValidationLosses_name)                    
-                    with open(ValidationLosses_name, 'wb') as f:
-                         pickle.dump(ValidationLosses, f) 
-                    
-                    ValidationLosses_name2 = ('ValidationLosses_%i_%i.csv' % ( n_epochs, batch_size))
-                    writer = csv.writer(open(ValidationLosses_name2, 'wb'))
-                    for ValidationLoss in ValidationLosses:
-                        writer.writerow([ValidationLoss])                         
+#                    
+#                    ValidationLosses_name = ('ValidationLosses_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+#                    print('filename for ValidationLosses: ', ValidationLosses_name)                    
+#                    with open(ValidationLosses_name, 'wb') as f:
+#                         pickle.dump(ValidationLosses, f) 
+#                    
+#                    ValidationLosses_name2 = ('ValidationLosses_%.2f_%i_%i.csv' % (learning_rate, n_epochs, batch_size))
+#                    writer = csv.writer(open(ValidationLosses_name2, 'wb'))
+#                    for ValidationLoss in ValidationLosses:
+#                        writer.writerow([ValidationLoss])                         
 #                    with open('best_model_MLP1_params2.pkl', 'wbwb') as f:
 #                         pickle.dump(classifier.params, f)     
 
@@ -850,52 +781,28 @@ def test_mlp(file_list, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
     return best_validation_loss
 
 if __name__ == '__main__':
-    theano.config.exception_verbosity='high'
     file_list = ['s0101a_dictio.words','s2501b_dictio.words','s2401a_dictio.words','s0102a_dictio.words','s1602a_dictio.words','s1802b_dictio.words','s1904a_dictio.words','s2101b_dictio.words']  
     
-    
-
-    acc_grad0_init = 0
-    acc_grad0 = theano.shared(acc_grad0_init)
-    acc_updates0_init = 0
-    acc_updates0 = theano.shared(acc_updates0_init)
-    
-    acc_grad1_init = 0
-    acc_grad1 = theano.shared(acc_grad1_init)
-    acc_updates1_init = 0
-    acc_updates1 = theano.shared(acc_updates1_init)
-    
-    acc_grad2_init = 0
-    acc_grad2 = theano.shared(acc_grad2_init)
-    acc_updates2_init = 0
-    acc_updates2 = theano.shared(acc_updates2_init)
-    
-    acc_grad3_init = 0
-    acc_grad3 = theano.shared(acc_grad3_init)
-    acc_updates3_init = 0
-    acc_updates3 = theano.shared(acc_updates3_init)
-
-    
-
     results = []
-    for nepochs in range (20,1400, 200):     
-        for batchsize in range (20,200,10):
-                         
-            os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
-            print('n_epochs = ', nepochs)
-           
-            print('batchsize = ', batchsize)
-            validation_error = test_mlp(file_list,n_epochs=nepochs, batch_size = batchsize, n_hidden=30)
-            print(nepochs, batchsize, validation_error)
-            results.append([nepochs, batchsize, validation_error])  
+#    learningrate=0.03
+    for nepochs in range (1000,3200, 500):    
+        for learningrate in numpy.arange(0.02, 0.06, 0.005):     
+            for batchsize in range (50,150,25):
+                             
+                os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
+                print('n_epochs = ', nepochs)
+                print('learning rate = ', learningrate)
+                print('batchsize = ', batchsize)
+                validation_error = test_mlp(file_list,learning_rate=learningrate,n_epochs=nepochs, batch_size = batchsize, n_hidden=30)
+                print(nepochs, learningrate, batchsize, validation_error)
+                print("#####################################################")
+                results.append([nepochs, learningrate, batchsize, validation_error])  
                 
-    os.chdir("/home/ambroise/Documents/LSC-Internship/results")            
-    writer = csv.writer(open('results4.csv', 'wb'))            
-    for nepochs, batchsize, validation_error  in results:
-        writer.writerow([nepochs, batchsize, validation_error])
+    os.chdir("/home/ambroise/Documents/LSC-Internship/results/Phone_Emb1")            
+    writer = csv.writer(open('results1.csv', 'wb'))            
+    for nepochs, learningrate, batchsize, validation_error  in results:
+        writer.writerow([nepochs, learningrate, batchsize, validation_error])
                 
     #print(results)
 
                   
-
-
