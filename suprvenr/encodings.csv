@@ -1,0 +1,3 @@
+encoding_name,filename
+phones_dictio,data/Dico_dictio_emb.csv
+phones_real,data/Dico_real_emb.csv

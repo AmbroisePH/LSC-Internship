@@ -210,9 +210,9 @@ def load_data(datasets):
     #load buckeye dictionary 
 
     if fnmatch.fnmatchcase(datasets[1], '*real*'):
-        dictio = corpora.Dictionary.load('BuckeyeDictionary_real.dict')
+        dictio = corpora.Dictionary.load('/home/ambroise/Documents/LSC-Internship/data/data_cleaned/BuckeyeDictionary_real.dict')
     elif fnmatch.fnmatchcase(datasets[1], '*dictio*'):
-        dictio = corpora.Dictionary.load('BuckeyeDictionary_dictio.dict')
+        dictio = corpora.Dictionary.load('/home/ambroise/Documents/LSC-Internship/data/data_cleaned/BuckeyeDictionary_dictio.dict')
     else:
         raise TypeError('Filename does not contain real or dictio, load data cannot find its dictionary',(datasets))
 

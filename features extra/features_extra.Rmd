@@ -1,0 +1,184 @@
+---
+title: "Cognition brief extra/followups"
+author: "Ewan Dunbar/Emmanuel Dupoux"
+date: "20 juin 2016"
+output: html_document
+---
+
+```{r setup, include=F}
+library(suprvenr)
+library(readr)
+library(purrr)
+library(reshape2)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(emdplot)
+library(xtable)
+n_bootstrap <- 1000
+```
+#Introduction
+
+# Appendix
+
+Here, we had a quick look at another way of measuring the representation of features using linear separability. Basically, the question here is whether the representation can capture natural classes. The features are defined in english_features.csv
+and the test is based on LDA with leave one out. 
+
+The representations that are tested are the PCA whitened acoustic, articulatory or both, varying the nb of dimensions. 
+
+In the feature representations, there is the option ternary features (ie 1, 0 or NA). 
+This is because there certain segments for which the certain feature values make little sense. (at least the code enables to test this). 
+
+#Materials
+
+same as before.
+```{r load, include=F, cache=T}
+
+feature_order <- read.table("analysis_two/feature_order.txt",
+                            sep="", quote="", stringsAsFactors=F)[[1]]
+test_pairs <- read_csv("analysis_two/test_pairs.csv")
+encodings <- read_csv("analysis_two/encoding_filenames.csv") %>%
+             mutate(
+               encoding=purrr::map(
+                 filename,
+                 ~ encoding(read_csv(.), transformation=zscore)
+               )
+             )
+encodings_pca <- read_csv("analysis_two/encoding_filenames.csv") %>%
+             mutate(
+               encoding=purrr::map(
+                 filename,
+                 ~ encoding(read_csv(.),
+                            transformation=whiten_pca,
+                            prop_var=0.9)
+               )
+             )
+example_encoding <- encoding(read_csv(encodings$filename[[1]]),
+                             transformation=whiten_pca, k=2)
+ideal_encoding <- encoding(read_csv("data/english_ideal.csv"),
+                              transformation=whiten_pca, k=2)
+
+test_pairs_long <- melt(
+  mutate(test_pairs, pair=paste0("Pair", 1:nrow(test_pairs))),
+         measure.vars = c("x1","x2"),
+         value.name = "label",
+         variable.name = "Phone")
+test_pairs_wide <- test_pairs %>%
+  group_by(Feature=fname) %>%
+  summarize(Pairs=paste(pair_labels(x1, x2, "/"), collapse=", ")) %>%
+  mutate(Feature=factor(Feature, feature_order))
+```
+
+#Results
+
+note that there are quite a nb of warnings, suggesting that the LDA is not very well regularized in case where there are more dimensions than examples in the classes.
+Perhaps another classifier would be better behaved.
+
+```{r include=FALSE}
+library(MASS)
+library(CCA)
+features=read_csv("extra/english_features.csv") # features for each phoneme
+```
+
+
+
+
+```{r figure-lsep, warning=F, echo=F}
+compute_lda<-function(encodings,features,func=whiten_pca,k=10){
+  feature_list=names(features)[c(-1,-2)] # this is the list of test features
+  phonemes_list=c(features[,"label"][[1]]) # list of phonemes
+
+  encnames=encodings$encoding_name # getting at the list of encodings
+  encfiles=encodings$filename
+  
+  RES=NULL
+  for (ef in encfiles) { # looping over each encoding
+    enc=read_csv(ef) # reading the encoding
+    res=NULL
+    data=as.matrix(enc[,-1]) # extracting and converting data into matrix
+    dimnames(data)[[1]]=enc$label #naming the lines with phonemes
+    for (f in feature_list){ # looping over each test feature
+      select=c(!is.na(features[f])) # selecting the subset of phonemes where feature value is not NA
+      class=paste(c(features[select,f])[[1]]) # this is the desired response
+      names(class)=phonemes_list[select] 
+      usable_phonemes=intersect(phonemes_list[select],enc$label)
+      thedata=func(data,k=k)[usable_phonemes,] # pca on phone subset
+      theclass=class[usable_phonemes] 
+      z<- lda(thedata, theclass,prior = c(1,1)/2,CV=T) # leave one out option
+      res=c(res,mean(paste(z$class)==paste(theclass)))
+      }
+    RES=rbind(RES,res)
+    }
+  dimnames(RES)=list(encnames,feature_list)
+  RES
+}
+```
+
+
+this is for 20 PCAs
+
+```{r table-20, echo=F, results='asis'}
+RES=compute_lda(encodings,features,whiten_pca,50)
+print(xtable(RES), type="html", include.rownames=T)
+``` 
+
+this is for 15 PCAs
+
+```{r table-15, echo=F, results='asis'}
+RES=compute_lda(encodings,features,whiten_pca,50)
+print(xtable(RES), type="html", include.rownames=T)
+``` 
+
+
+
+this is for 10 PCAs
+
+```{r table-10, echo=F, results='asis'}
+RES=compute_lda(encodings,features,whiten_pca,10)
+print(xtable(RES), type="html", include.rownames=T)
+``` 
+
+
+this is for 5 PCAs
+
+```{r table-5, echo=F, results='asis'}
+RES=compute_lda(encodings,features,whiten_pca,5)
+print(xtable(RES), type="html", include.rownames=T)
+``` 
+
+
+this is for 2 PCAs
+
+```{r table-2, echo=F, results='asis'}
+RES=compute_lda(encodings,features,whiten_pca,2)
+print(xtable(RES), type="html", include.rownames=T)
+``` 
+
+Now, we do a systematic computation
+
+```{r tables, echo=F, results='asis'}
+res=compute_lda(encodings,features,whiten_pca,2)
+RES=array(NA,c(19,nrow(res),ncol(res)))
+for (k in 2:20){
+RES[k-1,,]=compute_lda(encodings,features,whiten_pca,k)
+}
+dimnames(RES)=list(paste("PCA",2:20,sep="_"),dimnames(res)[[1]],dimnames(res)[[2]])
+``` 
+
+This is plotting, feature by feature, the natural class separability as a function 
+of nb of PCA dimensions. Grosso modo, there is a kind of an inverted u-shaped curve (too few dimensions bad and too litte as well). The peak seems to be at 10 dimensions and combined representations are better overall (but there is much more variation and noise than in the colinearity test). Note that there are a great many features (natural classes) that are missing here. It is not clear, by the way if we should be testing all possible 'features' or all possible natural classes (which would include combinations like voiced stops).
+
+```{r nasals,echo=F, fig.width=7, fig.height=7}
+for (f in names(features)[c(-1,-2)] ) {
+plot(RES[,1,f],type='l',ylim=c(0,1),main=f,ylab="Correct",xlab="PCA components")
+lines(RES[,2,f],col='red')
+lines(RES[,3,f],col='green')
+legend("bottomright",legend=dimnames(RES)[[2]],text.col=c('black','red','green'),bty="n")
+}
+
+plot(rowMeans(RES[,1,]),type='l',ylim=c(0,1),main="Grand Average",ylab="Correct",xlab="PCA components")
+lines(rowMeans(RES[,2,]),col='red')
+lines(rowMeans(RES[,3,]),col='green')
+legend("bottomright",legend=dimnames(RES)[[2]],text.col=c('black','red','green'),bty="n")
+```
+

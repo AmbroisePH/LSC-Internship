@@ -63,6 +63,7 @@ ggplot(prob_comb[prob_comb$weighted_error>0.0030,], aes(x=context_comb, y=weight
 
 sprintf("stat. error rate = %s", sum((1-prob_comb$prob_max)*prob_comb$prob_context))
 
-prob_both <- merge(prob, prob_comb,by=c("context_comb") )
+prob_both <- merge(prob, prob_comb,by=c("context_comb"))
+
 ```
 
