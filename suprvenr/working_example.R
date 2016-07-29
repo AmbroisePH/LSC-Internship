@@ -3,13 +3,14 @@ library(readr)
 library(tidyr)
 library(dplyr)
 library(purrr)
+library(ggplot2)
 
-encodings <- readr::read_csv("encodings.csv")
+encodings <- readr::read_csv("encodings6.csv")
 test_pairs <- readr::read_csv("test_pairs.csv")
 encodings <- encodings %>%
   mutate(encoding_value=purrr::map(
     filename,
-    ~ encoding(readr::read_csv(.), transformation=supervenr::zscore)
+    ~ encoding(readr::read_csv(.), transformation=suprvenr::zscore)
     ))
 mptests <- encodings %>%
   transmute(encoding_name=encoding_name,
@@ -34,3 +35,4 @@ p <- ggplot(mptests_h0_summ, aes(fill=encoding_name, x=fname, y=pval)) +
   scale_fill_manual(values=emdplot::emd_palette(mptests_h0_summ$encoding_name)) +
   emdplot::emd_theme()
 print(p)
+

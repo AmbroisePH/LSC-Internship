@@ -5,8 +5,8 @@ Created on Mon Jul 11 14:17:17 2016
 @author: ambroise
 
 
-GOAL: Phone_Emb2 get phone from the previous one AND the next one. Order deos matter (concatanation)
-      The transform of the left and right context in the firs hidden layer is NOT the same.
+GOAL: Phone_Emb4 gets phone from the previous one AND the next one. Order deos matter (concatanation)
+      The transform of the left and right context in the firs hidden layer IS the same.
       Here the whole Buckeye corpus is scanned
       
 Input: output of GetPhones_dictio
@@ -216,7 +216,7 @@ def load_data(pathname):
     elif fnmatch.fnmatchcase(pathname, '*dictio*'):
         dictio = corpora.Dictionary.load('/home/ambroise/Documents/LSC-Internship/data/data_cleaned/BuckeyeDictionary_dictio.dict')
     else:
-        raise TypeError('Filename does not contain real or dictio, load data cannot find its dictionary',(datasets))
+        raise TypeError('Filename does not contain real or dictio, load data cannot find its dictionary')
     
     os.chdir(pathname)
     datasets = glob.glob(pathname + "/*.words")
@@ -240,8 +240,10 @@ def load_data(pathname):
     train_set_y = numpy.zeros((n_examples,),dtype='int')
     
     index_vec =   [i for i in range (1,n_examples-1)]
-    
+    random.seed()
     random.shuffle(index_vec)
+    
+    print(index_vec[:10])
     
     for i in index_vec:
         train_set_x_left[i,dico[text[i-1]]] =  1
@@ -630,9 +632,9 @@ def test_mlp(pathname,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
         inputs=[index],
         outputs=classifier.errors(y),
         givens={
-            x_left: test_set_x_left[index * batch_size:(index + 1) * batch_size],
-            x_right: test_set_x_right[index * batch_size:(index + 1) * batch_size],
-            y: test_set_y[index * batch_size:(index + 1) * batch_size]
+            x_left: valid_set_x_left[index * batch_size:(index + 1) * batch_size],
+            x_right: valid_set_x_right[index * batch_size:(index + 1) * batch_size],
+            y: valid_set_y[index * batch_size:(index + 1) * batch_size]
         }
     )
 
@@ -661,9 +663,9 @@ def test_mlp(pathname,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
         outputs=cost,
         updates=updates,
         givens={
-            x_left: test_set_x_left[index * batch_size:(index + 1) * batch_size],
-            x_right: test_set_x_right[index * batch_size:(index + 1) * batch_size],
-            y: test_set_y[index * batch_size:(index + 1) * batch_size]
+            x_left: train_set_x_left[index * batch_size:(index + 1) * batch_size],
+            x_right: train_set_x_right[index * batch_size:(index + 1) * batch_size],
+            y: train_set_y[index * batch_size:(index + 1) * batch_size]
         }
     )
     # end-snippet-5
@@ -757,9 +759,9 @@ def test_mlp(pathname,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 #                         
 #                    with open('best_model_MLP1_LogRegressionLayer.pkl', 'wb') as f:
 #                         pickle.dump(classifier.logRegressionLayer, f)
-                    os.chdir("/home/ambroise/Documents/LSC-Internship/results/Phone_Emb4/Dictio")     
+                    os.chdir("/home/ambroise/Documents/LSC-Internship/results/reproductibility")     
                     
-                    SavedModel_name = ('BestModelEmb4_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+                    SavedModel_name = ('BestModelEmb4_%i_%.2f_%i_%i_%i.pkl' % (essai,learning_rate, n_epochs, batch_size, n_hidden))
                     #print('filename for saved model: ', SavedModel_name)                    
                     with open(SavedModel_name, 'wb') as f:
                          pickle.dump(classifier.params, f)  
@@ -793,28 +795,37 @@ def test_mlp(pathname,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
 if __name__ == '__main__':
     #file_list = ['s0101a_dictio.words','s2501b_dictio.words','s2401a_dictio.words','s0102a_dictio.words','s1602a_dictio.words','s1802b_dictio.words','s1904a_dictio.words','s2101b_dictio.words']  
-    pathname = "/home/ambroise/Documents/LSC-Internship/data/data_cleaned/Buckeye_dictio"
+    pathname = "/home/ambroise/Documents/LSC-Internship/data/data_cleaned/Buckeye_real"
     results = []
 #    learningrate=0.03
-    for nepochs in range (3000,3500, 500):    
-        for learningrate in numpy.arange(0.09, 0.1, 0.01):     
+    for essai in range (11,22,1):
+        random.seed()
+        for nepochs in range (1,501, 500):    
+            learningrate=0.09     
             for batchsize in range (75,100,25):
+                for n_hidden in range (25,30,5):
                              
-                #os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
-                print('n_epochs = ', nepochs)
-                print('learning rate = ', learningrate)
-                print('batchsize = ', batchsize)
-                validation_error = test_mlp(pathname,learning_rate=learningrate,n_epochs=nepochs, batch_size = batchsize, n_hidden=30)
-                print(nepochs, learningrate, batchsize, validation_error)
-                print(results)
-                print("#####################################################")
-                results.append([nepochs, learningrate, batchsize, validation_error])  
+                    #os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
+                    print('n_epochs = ', nepochs)
+                    print('learning rate = ', learningrate)
+                    print('batchsize = ', batchsize)
+                    random.seed()
+                    validation_error = test_mlp(pathname,learning_rate=learningrate,n_epochs=nepochs, batch_size = batchsize, n_hidden=n_hidden)
+                    print(essai, nepochs, learningrate, batchsize, n_hidden, validation_error)
+                    print(results)
+                    print("#####################################################")
+                    results.append([essai, nepochs, learningrate, batchsize, n_hidden, validation_error])  
                 
-    os.chdir("/home/ambroise/Documents/LSC-Internship/results/Phone_Emb4/Dictio")            
-    writer = csv.writer(open('results2.csv', 'wb'))            
-    for nepochs, learningrate, batchsize, validation_error  in results:
-        writer.writerow([nepochs, learningrate, batchsize, validation_error])
-                
+os.chdir("/home/ambroise/Documents/LSC-Internship/results/reproductibility")            
+writer = csv.writer(open('results5.csv', 'wb'))            
+for essai, nepochs, learningrate, batchsize, n_hidden, validation_error  in results:
+    writer.writerow([essai, nepochs, learningrate, batchsize, n_hidden, validation_error])
+    
+os.chdir("/home/ambroise/Documents/LSC-Internship/results/reproductibility")            
+writer = csv.writer(open('results5.csv', 'wb'))            
+for essai, nepochs, learningrate, batchsize, n_hidden, validation_error  in results:
+    writer.writerow([essai, nepochs, learningrate, batchsize, n_hidden, validation_error])    
+            
     #print(results)
 
                   

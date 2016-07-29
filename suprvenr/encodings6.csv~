@@ -1,0 +1,11 @@
+encoding_name,filename
+phones_real_1,data/Real/Embedding_BestModelEmb4_1_0.09_3000_75_25
+phones_real_2,data/Real/Embedding_BestModelEmb4_2_0.09_3000_75_25
+phones_real_3,data/Real/Embedding_BestModelEmb4_3_0.09_3000_75_25
+phones_real_4,data/Real/Embedding_BestModelEmb4_4_0.09_3000_75_25
+phones_real_5,data/Real/Embedding_BestModelEmb4_5_0.09_3000_75_25
+phones_real_6,data/Real/Embedding_BestModelEmb4_6_0.09_3000_75_25
+phones_real_7,data/Real/Embedding_BestModelEmb4_7_0.09_3000_75_25
+phones_real_8,data/Real/Embedding_BestModelEmb4_8_0.09_3000_75_25
+phones_real_9,data/Real/Embedding_BestModelEmb4_9_0.09_3000_75_25
+phones_real_10,data/Real/Embedding_BestModelEmb4_10_0.09_3000_75_25

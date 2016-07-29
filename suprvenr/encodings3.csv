@@ -1,0 +1,17 @@
+encoding_name,filename
+phones_dictio_15,data/Dictio/Embedding_BestModelEmb5_0.09_3000_75_15.csv
+phones_dictio_20,data/Dictio/Embedding_BestModelEmb5_0.09_3000_75_20.csv
+phones_dictio_25,data/Dictio/Embedding_BestModelEmb5_0.09_3000_75_25.csv
+phones_dictio_30,data/Dictio/Embedding_BestModelEmb5_0.09_3000_75_30.csv
+phones_real_15,data/Real/Embedding_BestModelEmb5_0.09_3000_75_15.csv
+phones_real_20,data/Real/Embedding_BestModelEmb5_0.09_3000_75_20.csv
+phones_real_25,data/Real/Embedding_BestModelEmb5_0.09_3000_75_25.csv
+phones_real_30,data/Real/Embedding_BestModelEmb5_0.09_3000_75_30.csv
+phones_#_dictio_15,data/#_Dictio/Embedding_BestModelEmb5_0.09_3000_75_15.csv
+phones_#_dictio_20,data/#_Dictio/Embedding_BestModelEmb5_0.09_3000_75_20.csv
+phones_#_dictio_25,data/#_Dictio/Embedding_BestModelEmb5_0.09_3000_75_25.csv
+phones_#_dictio_30,data/#_Dictio/Embedding_BestModelEmb5_0.09_3000_75_30.csv
+phones_#_real_15,data/#_Real/Embedding_BestModelEmb5_0.09_3000_75_15.csv
+phones_#_real_20,data/#_Real/Embedding_BestModelEmb5_0.09_3000_75_20.csv
+phones_#_real_25,data/#_Real/Embedding_BestModelEmb5_0.09_3000_75_25.csv
+phones_#_real_30,data/#_Real/Embedding_BestModelEmb5_0.09_3000_75_30.csv

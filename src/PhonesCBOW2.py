@@ -626,7 +626,7 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
 
     # early-stopping parameters
     patience = 10000  # look as this many examples regardless
-    patience_increase = 20  # wait this much longer when a new best is
+    patience_increase = 200000  # wait this much longer when a new best is
                            # found
     improvement_threshold = 0.995  # a relative improvement of this much is
                                    # considered significantmais
@@ -716,17 +716,17 @@ def test_mlp(file_list,learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=
                          pickle.dump(classifier.params, f)  
                     
                     
-#                    ValidationLosses_name = ('ValidationLosses_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
-#                    #print('filename for ValidationLosses: ', ValidationLosses_name)                    
-#                    with open(ValidationLosses_name, 'wb') as f:
-#                         pickle.dump(ValidationLosses, f) 
-#                    
-#                    ValidationLosses_name2 = ('ValidationLosses_%.2f_%i_%i.csv' % (learning_rate, n_epochs, batch_size))
-#                    writer = csv.writer(open(ValidationLosses_name2, 'wb'))
-#                    for ValidationLoss in ValidationLosses:
-#                        writer.writerow([ValidationLoss])                         
-#                    with open('best_model_MLP1_params2.pkl', 'wbwb') as f:
-#                         pickle.dump(classifier.params, f)     
+                    ValidationLosses_name = ('ValidationLosses_%.2f_%i_%i.pkl' % (learning_rate, n_epochs, batch_size))
+                    #print('filename for ValidationLosses: ', ValidationLosses_name)                    
+                    with open(ValidationLosses_name, 'wb') as f:
+                         pickle.dump(ValidationLosses, f) 
+                    
+                    ValidationLosses_name2 = ('ValidationLosses_%.2f_%i_%i.csv' % (learning_rate, n_epochs, batch_size))
+                    writer = csv.writer(open(ValidationLosses_name2, 'wb'))
+                    for ValidationLoss in ValidationLosses:
+                        writer.writerow([ValidationLoss])                         
+                    with open('best_model_MLP1_params2.pkl', 'wbwb') as f:
+                         pickle.dump(classifier.params, f)     
 
                     
             if patience <= iter:
@@ -747,9 +747,9 @@ if __name__ == '__main__':
     
     results = []
 #    learningrate=0.03
-    for nepochs in range (600,3200, 200):    
-        for learningrate in numpy.arange(0.02, 0.06, 0.005):     
-            for batchsize in range (50,150,25):
+    for nepochs in range (3000,3200, 200):    
+        for learningrate in numpy.arange(0.1, 0.2, 0.1):     
+            for batchsize in range (75,100,25):
                              
                 os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
                 print('n_epochs = ', nepochs)

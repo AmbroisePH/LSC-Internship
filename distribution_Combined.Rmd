@@ -7,8 +7,8 @@ output: html_document
 library(plyr)
 library(ggplot2)
 
-dist <- read.csv("data/data_cleaned/GetStat_both.csv", header=F)
-dist_comb <- read.csv("data/data_cleaned/GetStat_combined.csv", header=F)
+dist <- read.csv("data/data_cleaned/Buckeye_dictio/GetStat2_both.csv", header=F)
+dist_comb <- read.csv("data/data_cleaned/Buckeye_dictio/GetStat2_combined.csv", header=F)
 names(dist) <- c("context", "context_comb", "phoneme", "count")
 names(dist_comb) <- c("context_comb", "phoneme", "count")
 ```

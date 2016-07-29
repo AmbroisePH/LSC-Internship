@@ -6,7 +6,7 @@ Created on Wed Jun 15 17:34:17 2016
 
 Get statistics phones/context
 
-Input : corpus or corpora
+Input : corpus or corpora (here list of corpora)
 Output : number of combinaisons phone1-phone2-phone3
 """
 

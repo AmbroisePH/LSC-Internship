@@ -20,6 +20,7 @@ import os
 import sys
 import timeit
 import codecs as cd
+import glob
 
 from gensim import corpora, models, similarities
 
@@ -40,20 +41,20 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
     
    
-def predict(dataset_dico='BuckeyeDictionary_real.dict', activation = T.tanh):
+def predict(pathname_input, pathname_output, dataset_dico, modelname, activation = T.tanh):
         """
     load a trained model and use it
     """
     #load trained model
-        os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
+        os.chdir(pathname_input)
         dictionary = corpora.Dictionary.load(dataset_dico)
         
         dico = dictionary.token2id    
         dictio=[key for key, value in dico.iteritems()]
         
         
-        os.chdir("/home/ambroise/Documents/LSC-Internship/results/Phone_Emb4/Real")
-        model = pickle.load(open('BestModelEmb4_0.09_3000_75.pkl'))
+        os.chdir(pathname_output)
+        model = pickle.load(open(modelname))
         
         W1=model[0]
         b1=model[1]
@@ -72,7 +73,11 @@ def predict(dataset_dico='BuckeyeDictionary_real.dict', activation = T.tanh):
         #HL_output = activation(lin_output)
         print(dico_rep.eval())
         
-        with open ('Dico_real_emb.csv','w') as f:
+        
+        embedding_filename = "Embedding_" + modelname
+        embedding_filename = embedding_filename.replace("pkl", "csv")
+        print(embedding_filename)
+        with open (embedding_filename,'w') as f:
             lines=[]            
             for i in range (0, len(dico)):
                 coord = dico_rep[i].eval().tolist()
@@ -91,7 +96,18 @@ def predict(dataset_dico='BuckeyeDictionary_real.dict', activation = T.tanh):
         
   # #
 if __name__ == '__main__':
-    os.chdir("/home/ambroise/Documents/LSC-Internship/data/data_cleaned")
-    predict()
+    pathname_input="/home/ambroise/Documents/LSC-Internship/data/data_cleaned/Buckeye_#_real"
+    pathname_output="/home/ambroise/Documents/LSC-Internship/results/reproductibility"
+    models = glob.glob(pathname_output + "/*.pkl")
+    print(models)
+    for modelname in models:
+        modelname = modelname.replace(pathname_output+"/","")
+        print("####")        
+        print(modelname)
+        print("####")  
+        predict(pathname_input=pathname_input,
+                pathname_output=pathname_output,
+                dataset_dico='BuckeyeDictionary_real.dict', 
+                modelname = modelname)
         
 
