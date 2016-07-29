@@ -4,49 +4,20 @@ Created on Thu Jun  2 14:19:56 2016
 
 @author: ambroise
 
+Program based on the logistic regression tutorial using Theano and stochastic
+gradient descent. http://deeplearning.net/tutorial/logreg.html#logreg
 
-GOAL: CBOW get phone from the previous one AND the next one. No influence of order in CBOW2
+GOAL: CBOW get phone from the previous one AND the next one. No influence of order in CBOW2 (left and right context are added)
 
-Input: output of GetPhones_dictio
-
-Output: W model
-
-Input of the NN is the sum of two one-hot vectors corresponding to previous and next phones.
-
-This tutorial introduces logistic regression using Theano and stochastic
-gradient descent.    self.HL_output = (
-            lin_output if activation is None
-            else activation(lin_output)
-#            
-
-Logistic regression is a probabilistic, linear classifier. It is parametrized
-by a weight matrix :math:`W` and a bias vector :math:`b`. Classification is
-done by projecting data points onto a set of hyperplanes, the distance to
-which is used to determine a class membership probability.
-
-Mathematically, this can be written as:
-
-.. math::
-  P(Y=i|x, W,b) &= softmax_i(W x + b) \\
-                &= \frac {e^{W_i x + b_i}} {\sum_j e^{W_j x + b_j}}
+Input: Output of GetPhones_dictio.py
 
 
-The output of the model or prediction is then done by taking the argmax of
-the vector whose i'th element is P(Y=i|x).
-
-.. math::
-
-  y_{pred} = argmax_i P(Y=i|x,W,b)
+Output: W model (saved)
+        validation loss at every epoch (saved)
+        cvs files to test NN for different hyper parameters
 
 
-This tutorial presents a stochastic gradient descent optimization method
-suitable for large datasets.
 
-
-References:
-
-    - textbooks: "Pattern Recognition and Machine Learning" -
-                 Christopher M. Bishop, section 4.3.2
 """
 from __future__ import print_function
 
